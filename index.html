@@ -1,254 +1,191 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaique Rifas</title>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
 
-<title>Kaique Rifas</title>
-
-<link rel="stylesheet" href="style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
 </head>
-
 <body>
 
 <header class="topo">
+  <h1>Kaique Rifas</h1>
 
-<h1>Kaique Rifas</h1>
-
-<div>
-<span id="userEmail"></span>
-<button onclick="logout()">Sair</button>
-</div>
-
+  <div>
+    <span id="userEmail"></span>
+    <button onclick="logout()">Sair</button>
+  </div>
 </header>
 
-
 <section class="card">
-
-<h2>Rifa ativa</h2>
-
-<p id="statusRifa">Carregando...</p>
-<p id="valorRifa"></p>
-
+  <h2>Rifa ativa</h2>
+  <p id="statusRifa">Carregando...</p>
+  <p id="valorRifa"></p>
 </section>
 
-
 <section class="card">
-
-<h2>Itens disponíveis</h2>
-
-<div class="grid" id="gridBichos"></div>
-
+  <h2>Itens disponíveis</h2>
+  <div class="grid" id="gridBichos"></div>
 </section>
-
 
 <section class="card" id="pixBox" style="display:none">
+  <h2>Pagamento PIX</h2>
 
-<h2>Pagamento PIX</h2>
+  <input id="pixChave" readonly>
 
-<input id="pixChave" readonly>
+  <br><br>
 
-<br><br>
-
-<button onclick="copiarPix()">Copiar chave PIX</button>
-
+  <button onclick="copiarPix()">Copiar chave PIX</button>
 </section>
 
-
 <script>
-
-const grid = document.getElementById("gridBichos")
-const pixBox = document.getElementById("pixBox")
-
-let chavePix = ""
-let userId = ""
-
-function tempoRestante(reserva){
-
-const agora = new Date()
-const fim = new Date(reserva)
-
-const diff = fim - agora
-
-if(diff <= 0) return "00:00"
-
-const min = Math.floor(diff / 60000)
-const seg = Math.floor((diff % 60000) / 1000)
-
-return `${min}:${seg.toString().padStart(2,"0")}`
-
-}
-
-
-async function carregarUsuario(){
-
-const { data } = await sb.auth.getUser()
-
-if(!data.user){
-window.location.href = "login.html"
-return
-}
-
-userId = data.user.id
-
-document.getElementById("userEmail").innerText = data.user.email
-
-}
-
-
-async function carregarCampanha(){
-
-const { data } = await sb
-.from("campaigns")
-.select("*")
-.eq("id",1)
-.single()
-
-document.getElementById("statusRifa").innerText =
-data.ativa ? "Campanha ligada" : "Campanha desligada"
-
-document.getElementById("valorRifa").innerText =
-"Valor: R$ " + data.valor
-
-chavePix = data.chave_pix || ""
-
-document.getElementById("pixChave").value = chavePix
-
-}
-
-
-async function carregarItens(){
-
-const { data } = await sb
-.from("items")
-.select("*")
-.order("id")
-
-grid.innerHTML = ""
-
-let temReserva = false
-
-data.forEach(item=>{
-
-const div = document.createElement("div")
-
-div.className = "bicho " + item.status
-
-let tempo = ""
-let reservado = ""
-
-if(item.status === "reservado" && item.reservado_ate){
-tempo = `<p>Tempo: ${tempoRestante(item.reservado_ate)}</p>`
-}
-
-if(item.usuario_id === userId){
-
-if(item.status === "reservado"){
-reservado = "<p><b>Reservado por você</b></p>"
-temReserva = true
-}
-
-if(item.status === "pago"){
-reservado = "<p><b>Pago por você</b></p>"
-}
-
-}else{
-
-if(item.status === "reservado"){
-reservado = "<p><b>Reservado</b></p>"
-}
-
-if(item.status === "pago"){
-reservado = "<p><b>Pago</b></p>"
-}
-
-}
-
-div.innerHTML = `
-
-<h3>${item.nome}</h3>
-
-<p>Status: ${item.status}</p>
-
-<p>Valor: R$ ${item.valor}</p>
-
-${tempo}
-${reservado}
-
-`
-
-if(item.status === "livre"){
-div.onclick = ()=>reservar(item.id)
-}
-
-grid.appendChild(div)
-
-})
-
-if(temReserva){
-pixBox.style.display = "block"
-}else{
-pixBox.style.display = "none"
-}
-
-}
-
-
-async function reservar(id){
-
-const reservadoEm = new Date()
-const reservadoAte = new Date(Date.now() + 5 * 60 * 1000)
-
-await sb
-.from("items")
-.update({
-status:"reservado",
-usuario_id:userId,
-reservado_em:reservadoEm,
-reservado_ate:reservadoAte
-})
-.eq("id",id)
-
-carregarItens()
-
-}
-
-
-function copiarPix(){
-
-navigator.clipboard.writeText(chavePix)
-
-alert("Chave PIX copiada")
-
-}
-
-
-async function logout(){
-
-await sb.auth.signOut()
-
-window.location.href = "login.html"
-
-}
-
-
-async function iniciar(){
-
-await carregarUsuario()
-await carregarCampanha()
-await carregarItens()
-
-setInterval(carregarItens,1000)
-
-}
-
-iniciar()
-
+  const grid = document.getElementById("gridBichos")
+  const pixBox = document.getElementById("pixBox")
+
+  let chavePix = ""
+  let userId = ""
+
+  function tempoRestante(reserva) {
+    const agora = new Date()
+    const fim = new Date(reserva)
+    const diff = fim - agora
+
+    if (diff <= 0) return "00:00"
+
+    const min = Math.floor(diff / 60000)
+    const seg = Math.floor((diff % 60000) / 1000)
+
+    return `${min}:${seg.toString().padStart(2, "0")}`
+  }
+
+  async function carregarUsuario() {
+    const { data } = await sb.auth.getUser()
+
+    if (!data.user) {
+      window.location.href = "login.html"
+      return
+    }
+
+    userId = data.user.id
+    document.getElementById("userEmail").innerText = data.user.email
+  }
+
+  async function carregarCampanha() {
+    const { data } = await sb
+      .from("campaigns")
+      .select("*")
+      .eq("id", 1)
+      .single()
+
+    document.getElementById("statusRifa").innerText =
+      data.ativa ? "Campanha ligada" : "Campanha desligada"
+
+    document.getElementById("valorRifa").innerText =
+      "Valor: R$ " + data.valor
+
+    chavePix = data.chave_pix || ""
+    document.getElementById("pixChave").value = chavePix
+  }
+
+  async function carregarItens() {
+    const { data } = await sb
+      .from("items")
+      .select("*")
+      .order("id")
+
+    grid.innerHTML = ""
+
+    let temReserva = false
+
+    data.forEach(item => {
+      const div = document.createElement("div")
+      div.className = "bicho " + item.status
+
+      let tempo = ""
+      let reservado = ""
+
+      if (item.status === "reservado" && item.reservado_ate) {
+        tempo = `<p>Tempo: ${tempoRestante(item.reservado_ate)}</p>`
+      }
+
+      if (item.usuario_id === userId) {
+        if (item.status === "reservado") {
+          reservado = "<p><b>Reservado por você</b></p>"
+          temReserva = true
+        }
+
+        if (item.status === "pago") {
+          reservado = "<p><b>Pago por você</b></p>"
+        }
+      } else {
+        if (item.status === "reservado") {
+          reservado = "<p><b>Reservado</b></p>"
+        }
+
+        if (item.status === "pago") {
+          reservado = "<p><b>Pago</b></p>"
+        }
+      }
+
+      div.innerHTML = `
+        <h3>${item.nome}</h3>
+        <p>Status: ${item.status}</p>
+        <p>Valor: R$ ${item.valor}</p>
+        ${tempo}
+        ${reservado}
+      `
+
+      if (item.status === "livre") {
+        div.onclick = () => reservar(item.id)
+      }
+
+      grid.appendChild(div)
+    })
+
+    pixBox.style.display = temReserva ? "block" : "none"
+  }
+
+  async function reservar(id) {
+    const reservadoEm = new Date()
+    const reservadoAte = new Date(Date.now() + 5 * 60 * 1000)
+
+    await sb
+      .from("items")
+      .update({
+        status: "reservado",
+        usuario_id: userId,
+        reservado_em: reservadoEm,
+        reservado_ate: reservadoAte,
+        pago: false
+      })
+      .eq("id", id)
+
+    carregarItens()
+  }
+
+  function copiarPix() {
+    navigator.clipboard.writeText(chavePix)
+    alert("Chave PIX copiada")
+  }
+
+  async function logout() {
+    await sb.auth.signOut()
+    window.location.href = "login.html"
+  }
+
+  async function iniciar() {
+    await carregarUsuario()
+    await carregarCampanha()
+    await carregarItens()
+
+    setInterval(carregarItens, 1000)
+  }
+
+  iniciar()
 </script>
 
 </body>
