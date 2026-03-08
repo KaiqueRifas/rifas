@@ -8,10 +8,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kaique Rifas</title>
 
-  <link rel="stylesheet" href="style.css?v=600">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=600"></script>
+  <script src="config.js?v=700"></script>
 
   <style>
     body{
@@ -20,12 +18,10 @@
       margin:0;
       padding:20px;
     }
-
     .container{
       max-width:700px;
       margin:0 auto;
     }
-
     .card{
       background:#fff;
       padding:20px;
@@ -33,24 +29,18 @@
       margin-bottom:20px;
       box-shadow:0 2px 10px rgba(0,0,0,0.08);
     }
-
-    h1,h2{
-      margin-top:0;
-    }
-
+    h1,h2{margin-top:0}
     p{
       font-size:18px;
       line-height:1.5;
       margin:10px 0;
       white-space:pre-line;
     }
-
     .grid{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:12px;
     }
-
     .item{
       padding:20px 12px;
       border-radius:12px;
@@ -58,22 +48,10 @@
       font-weight:bold;
       border:1px solid rgba(0,0,0,0.08);
     }
-
-    .livre{
-      background:#bfe8bf;
-    }
-
-    .reservado{
-      background:#f5dfa1;
-    }
-
-    .pago{
-      background:#c7d8ff;
-    }
-
-    .indisponivel{
-      background:#e5e5e5;
-    }
+    .livre{ background:#bfe8bf; }
+    .reservado{ background:#f5dfa1; }
+    .pago{ background:#c7d8ff; }
+    .indisponivel{ background:#e5e5e5; }
   </style>
 </head>
 <body>
@@ -82,7 +60,7 @@
 
   <div class="card" id="card-rifa">
     <h2>Rifa</h2>
-    <p>Carregando rifa...</p>
+    <p>Carregando...</p>
   </div>
 
   <div class="card">
@@ -100,25 +78,27 @@ function formatarReal(v){
   })
 }
 
-async function buscarCampanhaMaisRecente(){
+async function buscarCampanha(){
   const { data, error } = await sb
     .from("campaigns")
     .select("*")
     .order("id", { ascending: false })
     .limit(1)
-    .maybeSingle()
 
-  if (error) return null
-  return data
+  if (error || !data || data.length === 0){
+    return null
+  }
+
+  return data[0]
 }
 
 async function carregarRifa(){
-  const campanha = await buscarCampanhaMaisRecente()
+  const campanha = await buscarCampanha()
   const card = document.getElementById("card-rifa")
 
   if (!campanha || !campanha.ativa){
     card.innerHTML = `
-      <h2>Rifa</h2>
+      <h1>Rifa</h1>
       <p>Rifa desligada</p>
     `
     return null
@@ -136,7 +116,7 @@ async function carregarRifa(){
 }
 
 async function carregarItens(){
-  const campanha = await buscarCampanhaMaisRecente()
+  const campanha = await buscarCampanha()
 
   const { data, error } = await sb
     .from("items")
@@ -154,10 +134,12 @@ async function carregarItens(){
   data.forEach(item => {
     let classe = "livre"
     let statusTexto = "Livre"
+    let valorTexto = campanha && campanha.ativa ? campanha.valor : 0
 
     if (!campanha || !campanha.ativa){
       classe = "indisponivel"
       statusTexto = "Indisponível"
+      valorTexto = 0
     } else if (item.pago || item.status === "pago" || item.confirmado === true){
       classe = "pago"
       statusTexto = "Pago"
@@ -166,13 +148,11 @@ async function carregarItens(){
       statusTexto = "Reservado"
     }
 
-    const valorItem = campanha && campanha.ativa ? campanha.valor : item.valor
-
     grid.innerHTML += `
       <div class="item ${classe}">
         <div style="font-size:20px;margin-bottom:10px;">${item.nome}</div>
         <div style="font-size:18px;margin-bottom:8px;">${statusTexto}</div>
-        <div style="font-size:18px;">R$ ${formatarReal(valorItem)}</div>
+        <div style="font-size:18px;">R$ ${formatarReal(valorTexto)}</div>
       </div>
     `
   })
