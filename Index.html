@@ -1,0 +1,136 @@
+index.html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaique Rifas</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+</head>
+
+<body>
+
+<header class="topo">
+<div class="logo-area">
+<h1>Kaique Rifas</h1>
+</div>
+
+<div class="user-area">
+<span id="userEmail"></span>
+<button onclick="logout()">Sair</button>
+</div>
+</header>
+
+
+<section class="info">
+<div class="card">
+<h2>Rifa ativa</h2>
+<p id="statusRifa">Carregando...</p>
+</div>
+</section>
+
+
+<section class="grid" id="gridBichos">
+</section>
+
+
+<script>
+
+const grid = document.getElementById("gridBichos")
+
+async function carregarUsuario(){
+
+const { data:{ user } } = await supabase.auth.getUser()
+
+if(!user){
+window.location.href="login.html"
+return
+}
+
+document.getElementById("userEmail").innerText=user.email
+
+}
+
+async function carregarBichos(){
+
+grid.innerHTML="Carregando..."
+
+const { data } = await supabase
+.from("items")
+.select("*")
+.order("id")
+
+grid.innerHTML=""
+
+data.forEach(item=>{
+
+const div=document.createElement("div")
+div.className="bicho"
+
+if(item.status==="livre"){
+div.classList.add("livre")
+}
+
+if(item.status==="reservado"){
+div.classList.add("reservado")
+}
+
+if(item.status==="confirmado"){
+div.classList.add("confirmado")
+}
+
+div.innerHTML=`
+<h3>${item.nome}</h3>
+<p>Status: ${item.status}</p>
+`
+
+if(item.status==="livre"){
+div.onclick=()=>reservar(item.id)
+}
+
+grid.appendChild(div)
+
+})
+
+}
+
+
+async function reservar(id){
+
+const { data:{ user } } = await supabase.auth.getUser()
+
+const tempo=new Date()
+tempo.setMinutes(tempo.getMinutes()+5)
+
+await supabase
+.from("items")
+.update({
+status:"reservado",
+reserved_by:user.id,
+reserved_until:tempo
+})
+.eq("id",id)
+
+carregarBichos()
+
+}
+
+async function logout(){
+
+await supabase.auth.signOut()
+window.location.href="login.html"
+
+}
+
+carregarUsuario()
+carregarBichos()
+
+</script>
+
+</body>
+</html>
