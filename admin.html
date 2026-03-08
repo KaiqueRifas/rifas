@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel ADM</title>
 
-  <link rel="stylesheet" href="style.css?v=50">
+  <link rel="stylesheet" href="style.css?v=51">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=50"></script>
+  <script src="config.js?v=51"></script>
 </head>
 <body>
 
@@ -21,6 +21,7 @@
   <h2>Controle da Rifa</h2>
   <button onclick="ligar()">Ligar rifa</button>
   <button onclick="desligar()">Desligar rifa</button>
+  <p id="statusCampanha"></p>
 </section>
 
 <section class="card">
@@ -40,41 +41,96 @@
 </section>
 
 <script>
-async function ligar(){
-  const { error } = await sb
-    .from("campaigns")
-    .update({ ativa:true })
-    .eq("id",1)
+let campanhaId = null
 
-  document.getElementById("msg").innerText = error ? error.message : "Rifa ligada"
+async function carregarCampanha() {
+  const { data, error } = await sb
+    .from("campaigns")
+    .select("*")
+    .order("id", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    document.getElementById("msg").innerText = error.message
+    return
+  }
+
+  if (!data) {
+    document.getElementById("statusCampanha").innerText = "Nenhuma campanha cadastrada"
+    return
+  }
+
+  campanhaId = data.id
+  document.getElementById("statusCampanha").innerText =
+    data.ativa ? "Rifa ligada" : "Rifa desligada"
 }
 
-async function desligar(){
+async function ligar() {
+  if (!campanhaId) {
+    await carregarCampanha()
+  }
+
+  if (!campanhaId) {
+    document.getElementById("msg").innerText = "Campanha não encontrada"
+    return
+  }
+
   const { error } = await sb
     .from("campaigns")
-    .update({ ativa:false })
-    .eq("id",1)
+    .update({ ativa: true })
+    .eq("id", campanhaId)
 
-  document.getElementById("msg").innerText = error ? error.message : "Rifa desligada"
+  if (error) {
+    document.getElementById("msg").innerText = error.message
+    return
+  }
+
+  document.getElementById("msg").innerText = "Rifa ligada"
+  await carregarCampanha()
 }
 
-async function resetar(){
-  if(!confirm("Resetar tudo?")) return
+async function desligar() {
+  if (!campanhaId) {
+    await carregarCampanha()
+  }
+
+  if (!campanhaId) {
+    document.getElementById("msg").innerText = "Campanha não encontrada"
+    return
+  }
+
+  const { error } = await sb
+    .from("campaigns")
+    .update({ ativa: false })
+    .eq("id", campanhaId)
+
+  if (error) {
+    document.getElementById("msg").innerText = error.message
+    return
+  }
+
+  document.getElementById("msg").innerText = "Rifa desligada"
+  await carregarCampanha()
+}
+
+async function resetar() {
+  if (!confirm("Resetar tudo?")) return
 
   const { error } = await sb
     .from("items")
     .update({
-      status:"livre",
-      usuario_id:null,
-      reservado_em:null,
-      reservado_ate:null,
-      pago:false,
-      reservado_email:null,
-      reservado_telefone:null
+      status: "livre",
+      usuario_id: null,
+      reservado_em: null,
+      reservado_ate: null,
+      pago: false,
+      reservado_email: null,
+      reservado_telefone: null
     })
-    .not("id","is",null)
+    .not("id", "is", null)
 
-  if(error){
+  if (error) {
     document.getElementById("msg").innerText = error.message
     return
   }
@@ -83,16 +139,16 @@ async function resetar(){
   await carregar()
 }
 
-async function confirmar(id){
+async function confirmar(id) {
   const { error } = await sb
     .from("items")
     .update({
-      status:"pago",
-      pago:true
+      status: "pago",
+      pago: true
     })
-    .eq("id",id)
+    .eq("id", id)
 
-  if(error){
+  if (error) {
     document.getElementById("msg").innerText = error.message
     return
   }
@@ -101,21 +157,21 @@ async function confirmar(id){
   await carregar()
 }
 
-async function liberar(id){
+async function liberar(id) {
   const { error } = await sb
     .from("items")
     .update({
-      status:"livre",
-      usuario_id:null,
-      reservado_em:null,
-      reservado_ate:null,
-      pago:false,
-      reservado_email:null,
-      reservado_telefone:null
+      status: "livre",
+      usuario_id: null,
+      reservado_em: null,
+      reservado_ate: null,
+      pago: false,
+      reservado_email: null,
+      reservado_telefone: null
     })
-    .eq("id",id)
+    .eq("id", id)
 
-  if(error){
+  if (error) {
     document.getElementById("msg").innerText = error.message
     return
   }
@@ -124,7 +180,7 @@ async function liberar(id){
   await carregar()
 }
 
-function criarCardAdmin(item){
+function criarCardAdmin(item) {
   const email = item.reservado_email || "-"
   const telefone = item.reservado_telefone || "-"
 
@@ -141,13 +197,15 @@ function criarCardAdmin(item){
   return card
 }
 
-async function carregar(){
+async function carregar() {
+  await carregarCampanha()
+
   const { data: items, error } = await sb
     .from("items")
     .select("*")
     .order("id")
 
-  if(error){
+  if (error) {
     document.getElementById("msg").innerText = error.message
     return
   }
@@ -159,7 +217,7 @@ async function carregar(){
   listaPagos.innerHTML = ""
 
   items.forEach(item => {
-    if(item.status === "reservado"){
+    if (item.status === "reservado") {
       const card = criarCardAdmin(item)
 
       const acoes = document.createElement("div")
@@ -180,7 +238,7 @@ async function carregar(){
       listaReservados.appendChild(card)
     }
 
-    if(item.status === "pago"){
+    if (item.status === "pago") {
       const card = criarCardAdmin(item)
 
       const acoes = document.createElement("div")
@@ -198,7 +256,7 @@ async function carregar(){
   })
 }
 
-async function logout(){
+async function logout() {
   await sb.auth.signOut()
   window.location.href = "login.html"
 }
