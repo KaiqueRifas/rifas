@@ -8,7 +8,7 @@
 <title>Rifa</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=1400"></script>
+<script src="config.js?v=1500"></script>
 
 <style>
 body{
@@ -39,15 +39,6 @@ font-size:14px;
 display:flex;
 gap:10px;
 flex-wrap:wrap;
-}
-
-.botao-topo{
-background:#0b3d91;
-padding:8px 14px;
-border-radius:6px;
-color:white;
-border:none;
-cursor:pointer;
 }
 
 .logout{
@@ -105,22 +96,6 @@ margin-top:6px;
 font-weight:bold;
 color:#0b3d91;
 }
-
-.contadores{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:15px;
-}
-
-.box-contador{
-background:#f7f7f7;
-border-radius:10px;
-padding:14px;
-font-size:18px;
-font-weight:bold;
-text-align:center;
-}
 </style>
 
 </head>
@@ -138,7 +113,6 @@ text-align:center;
 </div>
 
 <div class="botoes-topo">
-<button class="botao-topo" onclick="window.location.href='minhas-apostas.html'">Minhas apostas</button>
 <button class="logout" onclick="logout()">Sair</button>
 </div>
 
@@ -146,13 +120,6 @@ text-align:center;
 
 <div class="card" id="card-rifa">
 Carregando rifa...
-</div>
-
-<div class="card">
-<h3>Resumo da rifa</h3>
-<div class="contadores" id="contadores">
-<div class="box-contador">Carregando...</div>
-</div>
 </div>
 
 <div class="card">
@@ -345,44 +312,6 @@ async function reservar(itemId){
   await carregarItens()
 }
 
-async function carregarContadores(itens, campanha){
-  const box = document.getElementById("contadores")
-
-  if(!campanha || !campanha.ativa){
-    box.innerHTML = `
-      <div class="box-contador">Total: ${itens.length}</div>
-      <div class="box-contador">Livres: 0</div>
-      <div class="box-contador">Reservados: 0</div>
-      <div class="box-contador">Pagos: 0</div>
-    `
-    return
-  }
-
-  const livres = itens.filter(item =>
-    item.status !== "reservado" &&
-    item.status !== "pago" &&
-    item.confirmado !== true &&
-    item.pago !== true
-  ).length
-
-  const reservados = itens.filter(item =>
-    item.status === "reservado"
-  ).length
-
-  const pagos = itens.filter(item =>
-    item.status === "pago" ||
-    item.confirmado === true ||
-    item.pago === true
-  ).length
-
-  box.innerHTML = `
-    <div class="box-contador">Total: ${itens.length}</div>
-    <div class="box-contador">Livres: ${livres}</div>
-    <div class="box-contador">Reservados: ${reservados}</div>
-    <div class="box-contador">Pagos: ${pagos}</div>
-  `
-}
-
 async function carregarItens(){
   const campanha = await buscarCampanha()
 
@@ -396,11 +325,8 @@ async function carregarItens(){
 
   if(!data || data.length === 0){
     grid.innerHTML = "<p>Nenhum item encontrado.</p>"
-    await carregarContadores([], campanha)
     return
   }
-
-  await carregarContadores(data, campanha)
 
   data.forEach(item => {
     let classe = "livre"
