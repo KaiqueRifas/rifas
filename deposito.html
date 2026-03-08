@@ -6,10 +6,9 @@
 <title>Depósito</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=2400"></script>
+<script src="config.js?v=2500"></script>
 
 <style>
-
 body{
 font-family:Arial;
 background:#f2f2f2;
@@ -27,6 +26,14 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 margin-bottom:20px;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.topo-botoes{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
 }
 
 .btn{
@@ -75,14 +82,27 @@ font-size:26px;
 font-weight:bold;
 color:#1e4d94;
 margin-top:10px;
+word-break:break-word;
 }
 
 .item{
 border-top:1px solid #ddd;
 padding-top:10px;
 margin-top:10px;
+font-size:17px;
+line-height:1.5;
 }
 
+.msg{
+margin-top:15px;
+font-weight:bold;
+font-size:17px;
+}
+
+.info{
+font-size:18px;
+line-height:1.7;
+}
 </style>
 </head>
 
@@ -93,28 +113,23 @@ margin-top:10px;
 <div class="topo">
 <h1>Depósito</h1>
 
-<div>
+<div class="topo-botoes">
 <button class="btn btn-voltar" onclick="voltar()">Voltar</button>
 <button class="btn btn-sair" onclick="logout()">Sair</button>
 </div>
 </div>
 
-<div class="card" id="dadosConta"></div>
+<div class="card" id="dadosConta">
+Carregando conta...
+</div>
 
 <div class="card">
-
 <h2>Pix para depósito</h2>
-
 <p>Faça o depósito usando a chave abaixo:</p>
-
-<div class="pix">
-123.123.123.12
-</div>
-
+<div class="pix">123.123.123.12</div>
 </div>
 
 <div class="card">
-
 <h2>Solicitar depósito</h2>
 
 <input id="valor" placeholder="Valor">
@@ -123,125 +138,156 @@ margin-top:10px;
 Solicitar depósito
 </button>
 
-<div id="msg"></div>
-
+<div id="msg" class="msg"></div>
 </div>
 
 <div class="card">
-
 <h2>Histórico de depósitos</h2>
-
 <div id="historico"></div>
-
 </div>
 
 </div>
 
 <script>
-
-let usuario
+let usuario = null
+let perfilAtual = null
 
 function voltar(){
-window.location.href="index.html"
+window.location.href = "index.html"
 }
 
-function logout(){
-localStorage.removeItem("usuario")
-window.location.href="login.html"
+async function logout(){
+await sb.auth.signOut()
+window.location.href = "login.html"
 }
 
 function formatarReal(v){
-return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2})
+return Number(v || 0).toLocaleString("pt-BR", {
+minimumFractionDigits: 2,
+maximumFractionDigits: 2
+})
 }
 
 function formatarData(d){
 const data = new Date(d)
-return data.toLocaleDateString("pt-BR")+" "+data.toLocaleTimeString("pt-BR")
+return data.toLocaleDateString("pt-BR") + " " + data.toLocaleTimeString("pt-BR")
 }
 
-async function carregar(){
+function tratarValor(valor){
+const limpo = String(valor || "")
+.replace(/\s/g, "")
+.replace(/\./g, "")
+.replace(",", ".")
+const numero = parseFloat(limpo)
+return isNaN(numero) ? 0 : numero
+}
 
-usuario = JSON.parse(localStorage.getItem("usuario"))
+async function verificarLogin(){
+const { data, error } = await sb.auth.getUser()
 
-if(!usuario){
-window.location.href="login.html"
+if(error || !data.user){
+window.location.href = "login.html"
+return false
+}
+
+usuario = data.user
+return true
+}
+
+async function carregarPerfil(){
+const { data, error } = await sb
+.from("profiles")
+.select("*")
+.eq("id", usuario.id)
+.limit(1)
+
+if(error || !data || data.length === 0){
+perfilAtual = null
+document.getElementById("dadosConta").innerHTML = `
+<div class="info">Conta: ${usuario.email}</div>
+<div class="info">Saldo: R$ 0,00</div>
+`
 return
 }
 
+perfilAtual = data[0]
+
 document.getElementById("dadosConta").innerHTML = `
-Conta: ${usuario.email}<br>
-Saldo: R$ ${formatarReal(usuario.saldo)}
+<div class="info">Conta: ${usuario.email}</div>
+<div class="info">Saldo: R$ ${formatarReal(perfilAtual.saldo || 0)}</div>
 `
-
-carregarHistorico()
-
 }
 
 async function solicitarDeposito(){
+document.getElementById("msg").innerText = ""
 
-const valor = parseFloat(
-document.getElementById("valor").value
-.replace(",",".")
-)
+const valor = tratarValor(document.getElementById("valor").value)
 
-if(!valor || valor<=0){
-document.getElementById("msg").innerText="Digite um valor válido"
+if(valor <= 0){
+document.getElementById("msg").innerText = "Digite um valor válido"
 return
 }
 
 const { error } = await sb
 .from("depositos")
 .insert({
-email:usuario.email,
-valor:valor,
-status:"pendente"
+usuario_id: usuario.id,
+email: usuario.email,
+valor: valor,
+status: "pendente"
 })
 
 if(error){
-document.getElementById("msg").innerText=error.message
+document.getElementById("msg").innerText = error.message
 return
 }
 
-document.getElementById("msg").innerText="Depósito solicitado"
+document.getElementById("msg").innerText = "Depósito solicitado"
+document.getElementById("valor").value = ""
 
-document.getElementById("valor").value=""
-
-carregarHistorico()
-
+await carregarHistorico()
 }
 
 async function carregarHistorico(){
-
-const { data } = await sb
+const { data, error } = await sb
 .from("depositos")
 .select("*")
-.eq("email",usuario.email)
-.order("id",{ascending:false})
+.eq("usuario_id", usuario.id)
+.order("id", { ascending: false })
 
-let html=""
-
-if(!data || data.length===0){
-html="Nenhum depósito"
+if(error){
+document.getElementById("historico").innerHTML = error.message
+return
 }
 
-data.forEach(d=>{
+let html = ""
 
-html+=`
+if(!data || data.length === 0){
+html = "Nenhum depósito"
+}else{
+data.forEach(d => {
+html += `
 <div class="item">
 Valor: R$ ${formatarReal(d.valor)}<br>
-Status: ${d.status}<br>
+Status: ${d.status || "-"}<br>
 Data: ${formatarData(d.created_at)}
 </div>
 `
-
 })
-
-document.getElementById("historico").innerHTML=html
-
 }
 
-carregar()
+document.getElementById("historico").innerHTML = html
+}
 
+async function iniciar(){
+const ok = await verificarLogin()
+if(!ok) return
+
+await carregarPerfil()
+await carregarHistorico()
+}
+
+iniciar()
 </script>
 
 </body>
