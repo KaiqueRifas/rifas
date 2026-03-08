@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kaique Rifas</title>
 
-<link rel="stylesheet" href="style.css?v=42">
+<link rel="stylesheet" href="style.css?v=50">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=42"></script>
+<script src="config.js?v=50"></script>
 </head>
 
 <body>
@@ -84,11 +84,10 @@ async function carregarUsuario(){
     userTelefone = profile.telefone || ""
   }else{
     await sb.from("profiles").insert({
-      id: userId,
-      email: userEmail,
-      telefone: ""
+      id:userId,
+      email:userEmail,
+      telefone:""
     })
-
     userTelefone = ""
   }
 }
@@ -120,13 +119,13 @@ async function liberarExpirados(){
       await sb
         .from("items")
         .update({
-          status: "livre",
-          usuario_id: null,
-          reservado_em: null,
-          reservado_ate: null,
-          pago: false,
-          reservado_email: null,
-          reservado_telefone: null
+          status:"livre",
+          usuario_id:null,
+          reservado_em:null,
+          reservado_ate:null,
+          pago:false,
+          reservado_email:null,
+          reservado_telefone:null
         })
         .eq("id", item.id)
     }
@@ -211,22 +210,22 @@ async function reservar(id){
 
     await sb
       .from("profiles")
-      .update({ telefone: userTelefone })
-      .eq("id", userId)
+      .update({ telefone:userTelefone })
+      .eq("id",userId)
   }
 
   await sb
     .from("items")
     .update({
-      status: "reservado",
-      usuario_id: userId,
-      reservado_em: reservadoEm.toISOString(),
-      reservado_ate: reservadoAte.toISOString(),
-      pago: false,
-      reservado_email: userEmail,
-      reservado_telefone: userTelefone
+      status:"reservado",
+      usuario_id:userId,
+      reservado_em:reservadoEm.toISOString(),
+      reservado_ate:reservadoAte.toISOString(),
+      pago:false,
+      reservado_email:userEmail,
+      reservado_telefone:userTelefone
     })
-    .eq("id", id)
+    .eq("id",id)
 
   await carregarItens()
 }
@@ -245,8 +244,7 @@ async function iniciar(){
   await carregarUsuario()
   await carregarCampanha()
   await carregarItens()
-
-  setInterval(carregarItens, 1000)
+  setInterval(carregarItens,1000)
 }
 
 iniciar()
