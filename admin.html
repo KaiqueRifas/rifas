@@ -6,15 +6,55 @@
   <title>Admin</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=202"></script>
+  <script src="config.js?v=300"></script>
 
   <style>
-    body{font-family:Arial,sans-serif;background:#f3f3f3;margin:0;padding:20px}
-    .card{background:#fff;padding:20px;border-radius:14px;max-width:700px;margin:0 auto}
-    h1{margin-top:0}
-    input,textarea{width:100%;padding:14px;margin-top:12px;font-size:18px;box-sizing:border-box}
-    button{padding:12px 20px;font-size:18px;margin-top:14px;margin-right:10px}
-    #msg{margin-top:18px;font-size:18px}
+    body{
+      font-family:Arial,sans-serif;
+      background:#f3f3f3;
+      margin:0;
+      padding:20px;
+    }
+
+    .card{
+      background:#fff;
+      padding:20px;
+      border-radius:14px;
+      max-width:700px;
+      margin:0 auto;
+    }
+
+    h1{
+      margin-top:0;
+      font-size:28px;
+    }
+
+    input,textarea{
+      width:100%;
+      padding:14px;
+      margin-top:12px;
+      font-size:18px;
+      box-sizing:border-box;
+      border:1px solid #bbb;
+      border-radius:10px;
+    }
+
+    button{
+      padding:12px 20px;
+      font-size:18px;
+      margin-top:14px;
+      margin-right:10px;
+      border:none;
+      border-radius:10px;
+      background:#0d2d5f;
+      color:#fff;
+      font-weight:bold;
+    }
+
+    #msg{
+      margin-top:18px;
+      font-size:18px;
+    }
   </style>
 </head>
 <body>
@@ -46,8 +86,11 @@ function tratarValor(v){
 }
 
 function formatarValorInput(v){
-  if (!v) return ""
-  return String(v).replace(".", ",")
+  if(v === null || v === undefined || v === "") return ""
+  return Number(v).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 }
 
 async function buscarCampanha() {
@@ -63,7 +106,28 @@ async function buscarCampanha() {
     return null
   }
 
-  return data
+  if (data) return data
+
+  const { data: nova, error: erroNova } = await sb
+    .from("campaigns")
+    .insert({
+      ativa: false,
+      titulo: "",
+      valor: 0,
+      premiacao: "",
+      chave_pix: "",
+      nome_rifa: ""
+    })
+    .select()
+    .limit(1)
+    .maybeSingle()
+
+  if (erroNova) {
+    document.getElementById("msg").innerText = erroNova.message
+    return null
+  }
+
+  return nova
 }
 
 async function carregar() {
@@ -76,7 +140,7 @@ async function carregar() {
   campanhaId = campanha.id
 
   document.getElementById("nome").value = campanha.nome_rifa || ""
-  document.getElementById("valor").value = formatarValorInput(campanha.valor || "")
+  document.getElementById("valor").value = formatarValorInput(campanha.valor)
   document.getElementById("premio").value = campanha.premiacao || ""
   document.getElementById("pix").value = campanha.chave_pix || ""
 
