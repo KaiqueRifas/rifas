@@ -9,7 +9,7 @@
   <title>Admin Rifa</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=2300"></script>
+  <script src="config.js?v=2800"></script>
 
   <style>
     body{
@@ -145,7 +145,7 @@
 
   <div class="topo">
     <h1>Admin</h1>
-    <button class="btn-topo" onclick="window.location.href='relatorio.html'">Relatório</button>
+    <button class="btn-topo" onclick="window.location.href='relatorio.html?v=2800'">Relatório</button>
   </div>
 
   <div class="card">
@@ -223,7 +223,28 @@ function formatarReal(v){
 
 function formatarData(data){
   const d = new Date(data)
-  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR")
+  return d.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  })
+}
+
+async function criarNotificacao(usuarioId, titulo, mensagem){
+  if(!usuarioId) return
+
+  await sb
+    .from("notificacoes")
+    .insert({
+      usuario_id: usuarioId,
+      titulo: titulo,
+      mensagem: mensagem,
+      lida: false
+    })
 }
 
 async function buscarCampanhaMaisRecente(){
@@ -480,16 +501,15 @@ async function carregarDepositos(){
         <div class="titulo-item">Depósito #${dep.id}</div>
         <div class="linha">Email: ${dep.email || "-"}</div>
         <div class="linha">Valor: R$ ${formatarReal(dep.valor)}</div>
-        <div class="linha">Comprovante: ${dep.comprovante || "-"}</div>
         <div class="linha">Status: ${dep.status || "-"}</div>
         <div class="linha">Data: ${formatarData(dep.created_at)}</div>
-        <button class="btn-verde" onclick="aprovarDeposito(${dep.id}, '${dep.email}', ${Number(dep.valor || 0)})">Aprovar depósito</button>
+        <button class="btn-verde" onclick="aprovarDeposito(${dep.id}, '${dep.email}', ${Number(dep.valor || 0)}, '${dep.usuario_id || ""}')">Aprovar depósito</button>
       </div>
     `
   })
 }
 
-async function aprovarDeposito(id, email, valor){
+async function aprovarDeposito(id, email, valor, usuarioId){
   const { data: perfil, error: erroPerfil } = await sb
     .from("profiles")
     .select("*")
@@ -528,6 +548,12 @@ async function aprovarDeposito(id, email, valor){
     return
   }
 
+  await criarNotificacao(
+    usuarioId || cliente.id,
+    "Depósito aprovado",
+    "Seu depósito de R$ " + formatarReal(valor) + " foi aprovado e já entrou no seu saldo."
+  )
+
   await carregarDepositos()
 }
 
@@ -560,13 +586,13 @@ async function carregarSaques(){
         <div class="linha">Pix: ${saque.pix || "-"}</div>
         <div class="linha">Status: ${saque.status || "-"}</div>
         <div class="linha">Data: ${formatarData(saque.created_at)}</div>
-        <button class="btn-verde" onclick="marcarSaquePago(${saque.id})">Marcar como pago</button>
+        <button class="btn-verde" onclick="marcarSaquePago(${saque.id}, '${saque.usuario_id || ""}', ${Number(saque.valor || 0)})">Marcar como pago</button>
       </div>
     `
   })
 }
 
-async function marcarSaquePago(id){
+async function marcarSaquePago(id, usuarioId, valor){
   const { error } = await sb
     .from("saques")
     .update({
@@ -578,6 +604,12 @@ async function marcarSaquePago(id){
     alert(error.message)
     return
   }
+
+  await criarNotificacao(
+    usuarioId,
+    "Saque aprovado",
+    "Seu saque de R$ " + formatarReal(valor) + " foi marcado como pago."
+  )
 
   await carregarSaques()
 }
@@ -613,7 +645,7 @@ async function carregarItensAdmin(){
           <div class="linha">Status: Reservado</div>
           <div class="linha">Email: ${item.reservado_email || "-"}</div>
           <div class="linha">Telefone: ${item.reservado_telefone || "-"}</div>
-          <button class="btn-verde" onclick="confirmarPagamento(${item.id})">Confirmar pagamento</button>
+          <button class="btn-verde" onclick="confirmarPagamento(${item.id}, '${item.usuario_id || ""}', '${item.nome || ""}')">Confirmar pagamento</button>
           <button class="btn-vermelho" onclick="liberarItem(${item.id})">Liberar item</button>
         </div>
       `
@@ -637,7 +669,7 @@ async function carregarItensAdmin(){
   }
 }
 
-async function confirmarPagamento(id){
+async function confirmarPagamento(id, usuarioId, nomeItem){
   const { error } = await sb
     .from("items")
     .update({
@@ -651,6 +683,12 @@ async function confirmarPagamento(id){
     alert(error.message)
     return
   }
+
+  await criarNotificacao(
+    usuarioId,
+    "Pagamento confirmado",
+    "O pagamento do bicho " + nomeItem + " foi confirmado com sucesso."
+  )
 
   await carregarItensAdmin()
 }
