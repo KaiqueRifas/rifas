@@ -1,30 +1,48 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin - Kaique Rifas</title>
+
+<title>Painel ADM</title>
 
 <link rel="stylesheet" href="style.css">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+
 </head>
 
 <body>
 
 <header class="topo">
+
 <h1>Painel ADM</h1>
+
 <button onclick="logout()">Sair</button>
+
 </header>
 
+
 <section class="card">
+
 <h2>Controle da Rifa</h2>
 
 <button onclick="ligar()">Ligar rifa</button>
 <button onclick="desligar()">Desligar rifa</button>
 
 </section>
+
+
+<section class="card">
+
+<h2>Ferramentas</h2>
+
+<button onclick="resetar()">RESETAR SISTEMA</button>
+
+</section>
+
 
 <section class="card">
 
@@ -34,67 +52,8 @@
 
 </section>
 
+
 <script>
-
-async function carregar() {
-
-const { data, error } = await sb
-.from("items")
-.select("*")
-.eq("status","reservado")
-
-const div = document.getElementById("lista")
-div.innerHTML = ""
-
-data.forEach(item => {
-
-const card = document.createElement("div")
-card.className = "bicho reservado"
-
-card.innerHTML = `
-<h3>${item.nome}</h3>
-<p>Valor: R$ ${item.valor}</p>
-
-<button onclick="confirmar(${item.id})">Confirmar pagamento</button>
-
-<button onclick="liberar(${item.id})">Liberar</button>
-`
-
-div.appendChild(card)
-
-})
-
-}
-
-async function confirmar(id){
-
-await sb
-.from("items")
-.update({
-status:"pago",
-pago:true
-})
-.eq("id",id)
-
-carregar()
-
-}
-
-async function liberar(id){
-
-await sb
-.from("items")
-.update({
-status:"livre",
-usuario_id:null,
-reservado_em:null,
-reservado_ate:null
-})
-.eq("id",id)
-
-carregar()
-
-}
 
 async function ligar(){
 
@@ -103,7 +62,10 @@ await sb
 .update({ativa:true})
 .eq("id",1)
 
+alert("Rifa ligada")
+
 }
+
 
 async function desligar(){
 
@@ -112,14 +74,41 @@ await sb
 .update({ativa:false})
 .eq("id",1)
 
+alert("Rifa desligada")
+
 }
+
+
+async function resetar(){
+
+if(!confirm("Resetar tudo?")) return
+
+await sb
+.from("items")
+.update({
+
+status:"livre",
+usuario_id:null,
+reservado_em:null,
+reservado_ate:null
+
+})
+.neq("id",0)
+
+alert("Sistema resetado")
+
+location.reload()
+
+}
+
 
 async function logout(){
-await sb.auth.signOut()
-window.location.href="login.html"
-}
 
-carregar()
+await sb.auth.signOut()
+
+window.location.href="login.html"
+
+}
 
 </script>
 
