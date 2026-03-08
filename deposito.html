@@ -6,7 +6,7 @@
 <title>Depósito</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=2600"></script>
+<script src="config.js?v=2700"></script>
 
 <style>
 body{
@@ -85,6 +85,11 @@ margin-top:10px;
 word-break:break-word;
 }
 
+.btn-copiar{
+background:#1f8f4e;
+margin-top:15px;
+}
+
 .item{
 border-top:1px solid #ddd;
 padding-top:10px;
@@ -97,6 +102,7 @@ line-height:1.5;
 margin-top:15px;
 font-weight:bold;
 font-size:17px;
+white-space:pre-line;
 }
 
 .info{
@@ -126,7 +132,9 @@ Carregando conta...
 <div class="card">
 <h2>Pix para depósito</h2>
 <p>Faça o depósito usando a chave abaixo:</p>
-<div class="pix">123.123.123.12</div>
+<div class="pix" id="chavePix">123.123.123.12</div>
+<button class="btn btn-copiar" onclick="copiarPix()">Copiar Pix</button>
+<div class="msg" id="msgPix"></div>
 </div>
 
 <div class="card">
@@ -153,7 +161,7 @@ let usuario = null
 let perfilAtual = null
 
 function voltar(){
-window.location.href = "index.html?v=2600"
+window.location.href = "index.html?v=2700"
 }
 
 async function logout(){
@@ -216,6 +224,17 @@ document.getElementById("dadosConta").innerHTML = `
 <div class="info">Conta: ${usuario.email}</div>
 <div class="info">Saldo: R$ ${formatarReal(perfilAtual.saldo || 0)}</div>
 `
+}
+
+async function copiarPix(){
+const chave = document.getElementById("chavePix").innerText
+
+try{
+  await navigator.clipboard.writeText(chave)
+  document.getElementById("msgPix").innerText = "Pix copiado com sucesso"
+}catch(e){
+  document.getElementById("msgPix").innerText = "Não foi possível copiar o Pix"
+}
 }
 
 async function solicitarDeposito(){
