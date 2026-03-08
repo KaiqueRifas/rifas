@@ -6,7 +6,7 @@
   <title>Admin</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=201"></script>
+  <script src="config.js?v=202"></script>
 
   <style>
     body{font-family:Arial,sans-serif;background:#f3f3f3;margin:0;padding:20px}
@@ -45,6 +45,11 @@ function tratarValor(v){
   return isNaN(numero) ? 0 : numero
 }
 
+function formatarValorInput(v){
+  if (!v) return ""
+  return String(v).replace(".", ",")
+}
+
 async function buscarCampanha() {
   const { data, error } = await sb
     .from("campaigns")
@@ -58,39 +63,15 @@ async function buscarCampanha() {
     return null
   }
 
-  if (!data) {
-    const { data: nova, error: erroNova } = await sb
-      .from("campaigns")
-      .insert({
-        ativa: false,
-        titulo: "",
-        valor: 0,
-        premiacao: "",
-        chave_pix: "",
-        nome_rifa: ""
-      })
-      .select()
-      .single()
-
-    if (erroNova) {
-      document.getElementById("msg").innerText = erroNova.message
-      return null
-    }
-
-    return nova
-  }
-
   return data
-}
-
-function formatarValorInput(v){
-  if (!v) return ""
-  return String(v).replace(".", ",")
 }
 
 async function carregar() {
   const campanha = await buscarCampanha()
-  if (!campanha) return
+  if (!campanha) {
+    document.getElementById("msg").innerText = "Campanha não encontrada"
+    return
+  }
 
   campanhaId = campanha.id
 
@@ -104,7 +85,10 @@ async function carregar() {
 
 async function salvar() {
   const campanha = await buscarCampanha()
-  if (!campanha) return
+  if (!campanha) {
+    document.getElementById("msg").innerText = "Campanha não encontrada"
+    return
+  }
 
   campanhaId = campanha.id
 
@@ -113,7 +97,7 @@ async function salvar() {
   const premio = document.getElementById("premio").value.trim()
   const pix = document.getElementById("pix").value.trim()
 
-  const { data, error } = await sb
+  const { error } = await sb
     .from("campaigns")
     .update({
       nome_rifa: nome,
@@ -124,25 +108,22 @@ async function salvar() {
       ativa: true
     })
     .eq("id", campanhaId)
-    .select()
-    .single()
 
   if (error) {
     document.getElementById("msg").innerText = error.message
     return
   }
 
-  document.getElementById("nome").value = data.nome_rifa || ""
-  document.getElementById("valor").value = formatarValorInput(data.valor || "")
-  document.getElementById("premio").value = data.premiacao || ""
-  document.getElementById("pix").value = data.chave_pix || ""
-
+  await carregar()
   document.getElementById("msg").innerText = "Rifa salva e ligada"
 }
 
 async function desligar() {
   const campanha = await buscarCampanha()
-  if (!campanha) return
+  if (!campanha) {
+    document.getElementById("msg").innerText = "Campanha não encontrada"
+    return
+  }
 
   campanhaId = campanha.id
 
