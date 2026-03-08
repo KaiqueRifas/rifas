@@ -1,324 +1,211 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaique Rifas</title>
-  <link rel="stylesheet" href="style.css?v=99">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=99"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Kaique Rifas</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
 </head>
+
 <body>
 
-  <header class="topo">
-    <div class="logo-area">
-      <h1>Kaique Rifas</h1>
-    </div>
+<header class="topo">
 
-    <div class="user-area">
-      <span id="userEmail"></span>
-      <button onclick="logout()">Sair</button>
-    </div>
-  </header>
+<h1>Kaique Rifas</h1>
 
-  <section class="info">
-    <div class="card">
-      <h2>Rifa ativa</h2>
-      <p id="statusRifa">Carregando...</p>
-      <p id="valorRifa"></p>
-      <p id="premiacaoRifa"></p>
-    </div>
-  </section>
+<div>
 
-  <section class="card">
-    <h2>Itens disponíveis</h2>
-    <p id="mensagem"></p>
-    <div class="grid" id="gridBichos">Carregando...</div>
-  </section>
+<span id="userEmail"></span>
 
-  <section class="card">
-    <h2>Debug</h2>
-    <div id="debugBox"></div>
-  </section>
+<button onclick="logout()">Sair</button>
 
-  <script>
-    const grid = document.getElementById("gridBichos")
-    const mensagem = document.getElementById("mensagem")
-    const debugBox = document.getElementById("debugBox")
+</div>
 
-    function debug(texto) {
-      const p = document.createElement("p")
-      p.innerText = texto
-      debugBox.appendChild(p)
-    }
+</header>
 
-    async function carregarUsuario() {
-      try {
-        debug("1. Verificando usuário...")
 
-        const { data, error } = await sb.auth.getUser()
+<section class="card">
 
-        if (error) {
-          debug("Erro auth: " + error.message)
-          window.location.href = "login.html"
-          return false
-        }
+<h2>Rifa ativa</h2>
 
-        if (!data.user) {
-          debug("Usuário não logado")
-          window.location.href = "login.html"
-          return false
-        }
+<p id="statusRifa">Carregando...</p>
 
-        document.getElementById("userEmail").innerText = data.user.email || ""
-        debug("Usuário OK: " + (data.user.email || "sem email"))
-        return true
-      } catch (e) {
-        debug("Erro carregarUsuario: " + e.message)
-        return false
-      }
-    }
+<p id="valorRifa"></p>
 
-    async function carregarCampanha() {
-      try {
-        debug("2. Buscando campanha...")
+</section>
 
-        const { data, error } = await sb
-          .from("campaigns")
-          .select("*")
-          .order("id", { ascending: true })
-          .limit(1)
-          .maybeSingle()
 
-        if (error) {
-          document.getElementById("statusRifa").innerText = "Erro campanha"
-          document.getElementById("valorRifa").innerText = error.message
-          debug("Erro campaigns: " + error.message)
-          return
-        }
+<section class="card">
 
-        if (!data) {
-          document.getElementById("statusRifa").innerText = "Nenhuma campanha cadastrada"
-          debug("Tabela campaigns sem registro")
-          return
-        }
+<h2>Itens disponíveis</h2>
 
-        document.getElementById("statusRifa").innerText = data.ativa ? "Campanha ligada" : "Campanha desligada"
-        document.getElementById("valorRifa").innerText = "Valor: R$ " + Number(data.valor || 0).toFixed(2).replace(".", ",")
-        document.getElementById("premiacaoRifa").innerText = data.premiacao ? "Premiação: " + data.premiacao : ""
-        debug("Campanha OK")
-      } catch (e) {
-        document.getElementById("statusRifa").innerText = "Erro campanha"
-        debug("Erro carregarCampanha: " + e.message)
-      }
-    }
+<div class="grid" id="gridBichos"></div>
 
-    async function liberarReservasExpiradas() {
-      try {
-        const agora = new Date().toISOString()
+</section>
 
-        const { data, error } = await sb
-          .from("items")
-          .select("id,status,reservado_ate,confirmado")
-          .eq("status", "reservado")
 
-        if (error) {
-          debug("Erro ao buscar reservados: " + error.message)
-          return
-        }
+<section class="card" id="pixBox" style="display:none">
 
-        for (const item of data || []) {
-          if (item.confirmado === true) continue
+<h2>Pagamento</h2>
 
-          if (item.reservado_ate && item.reservado_ate < agora) {
-            await sb
-              .from("items")
-              .update({
-                status: "livre",
-                usuario_id: null,
-                reservado_em: null,
-                reservado_ate: null,
-                confirmado: false
-              })
-              .eq("id", item.id)
-          }
-        }
+<p>Faça o pagamento via PIX</p>
 
-        debug("Reservas expiradas verificadas")
-      } catch (e) {
-        debug("Erro liberarReservasExpiradas: " + e.message)
-      }
-    }
+<input id="pixChave" readonly>
 
-    function formatarTempo(restanteMs) {
-      if (restanteMs <= 0) return "00:00"
-      const totalSeg = Math.floor(restanteMs / 1000)
-      const min = String(Math.floor(totalSeg / 60)).padStart(2, "0")
-      const seg = String(totalSeg % 60).padStart(2, "0")
-      return min + ":" + seg
-    }
+<button onclick="copiarPix()">Copiar chave PIX</button>
 
-    async function carregarItens() {
-      try {
-        debug("3. Buscando items...")
-        grid.innerHTML = "Carregando..."
+<p>Após pagar envie o comprovante</p>
 
-        await liberarReservasExpiradas()
+</section>
 
-        const { data: authData } = await sb.auth.getUser()
-        const user = authData.user
 
-        const { data, error } = await sb
-          .from("items")
-          .select("*")
-          .order("id", { ascending: true })
+<script>
 
-        if (error) {
-          grid.innerHTML = ""
-          mensagem.innerText = "Erro ao carregar itens: " + error.message
-          debug("Erro items: " + error.message)
-          return
-        }
+const grid = document.getElementById("gridBichos")
+const pixBox = document.getElementById("pixBox")
 
-        if (!data || data.length === 0) {
-          grid.innerHTML = "<p>Nenhum item cadastrado.</p>"
-          debug("Tabela items vazia")
-          return
-        }
+let chavePix = ""
 
-        debug("Items encontrados: " + data.length)
+async function carregarUsuario(){
 
-        mensagem.innerText = ""
-        grid.innerHTML = ""
+const { data } = await sb.auth.getUser()
 
-        data.forEach(item => {
-          const div = document.createElement("div")
-          div.className = "bicho " + item.status
+if(!data.user){
 
-          let textoTempo = ""
-          if (item.status === "reservado" && item.reservado_ate) {
-            const restante = new Date(item.reservado_ate).getTime() - Date.now()
-            textoTempo = "<p>Tempo: " + formatarTempo(restante) + "</p>"
-          }
+window.location.href="login.html"
+return
 
-          let dono = ""
-          if (item.usuario_id && user && item.usuario_id === user.id) {
-            dono = "<p><strong>Reservado por você</strong></p>"
-          }
+}
 
-          div.innerHTML = `
-            <h3>${item.nome}</h3>
-            <p>Status: ${item.status}</p>
-            <p>Valor: R$ ${Number(item.valor || 0).toFixed(2).replace(".", ",")}</p>
-            ${textoTempo}
-            ${dono}
-          `
+document.getElementById("userEmail").innerText = data.user.email
 
-          if (item.status === "livre") {
-            div.onclick = () => reservar(item.id)
-          }
+}
 
-          grid.appendChild(div)
-        })
-      } catch (e) {
-        grid.innerHTML = ""
-        mensagem.innerText = "Erro geral ao carregar itens"
-        debug("Erro carregarItens: " + e.message)
-      }
-    }
 
-    async function reservar(id) {
-      try {
-        mensagem.innerText = "Reservando..."
+async function carregarCampanha(){
 
-        const { data: authData, error: authError } = await sb.auth.getUser()
+const { data } = await sb
+.from("campaigns")
+.select("*")
+.eq("id",1)
+.single()
 
-        if (authError || !authData.user) {
-          window.location.href = "login.html"
-          return
-        }
+document.getElementById("statusRifa").innerText =
+data.ativa ? "Campanha ligada":"Campanha desligada"
 
-        const user = authData.user
+document.getElementById("valorRifa").innerText =
+"Valor: R$ "+data.valor
 
-        const { data: itemAtual, error: itemErro } = await sb
-          .from("items")
-          .select("*")
-          .eq("id", id)
-          .maybeSingle()
+chavePix = data.chave_pix
 
-        if (itemErro || !itemAtual) {
-          mensagem.innerText = "Erro ao buscar item"
-          debug("Erro buscar item: " + (itemErro ? itemErro.message : "item não encontrado"))
-          return
-        }
+document.getElementById("pixChave").value = chavePix
 
-        if (itemAtual.status !== "livre") {
-          mensagem.innerText = "Esse item não está mais livre"
-          carregarItens()
-          return
-        }
+}
 
-        const reservadoEm = new Date()
-        const reservadoAte = new Date(Date.now() + 5 * 60 * 1000)
 
-        const { error } = await sb
-          .from("items")
-          .update({
-            status: "reservado",
-            usuario_id: user.id,
-            reservado_em: reservadoEm.toISOString(),
-            reservado_ate: reservadoAte.toISOString(),
-            confirmado: false
-          })
-          .eq("id", id)
-          .eq("status", "livre")
+async function carregarItens(){
 
-        if (error) {
-          mensagem.innerText = "Erro ao reservar: " + error.message
-          debug("Erro reservar: " + error.message)
-          return
-        }
+const { data } = await sb
+.from("items")
+.select("*")
+.order("id")
 
-        mensagem.innerText = "Item reservado por 5 minutos"
-        debug("Item reservado: " + id)
-        carregarItens()
-      } catch (e) {
-        mensagem.innerText = "Erro ao reservar"
-        debug("Erro reservar catch: " + e.message)
-      }
-    }
+grid.innerHTML=""
 
-    async function logout() {
-      await sb.auth.signOut()
-      window.location.href = "login.html"
-    }
+data.forEach(item=>{
 
-    async function iniciar() {
-      try {
-        debug("Iniciando sistema...")
+const div = document.createElement("div")
 
-        if (!window.sb) {
-          debug("ERRO: cliente Supabase não encontrado em config.js")
-          document.getElementById("statusRifa").innerText = "Erro no config.js"
-          grid.innerHTML = ""
-          return
-        }
+div.className = "bicho "+item.status
 
-        const ok = await carregarUsuario()
-        if (!ok) return
+div.innerHTML=`
 
-        await carregarCampanha()
-        await carregarItens()
-        setInterval(carregarItens, 10000)
-      } catch (e) {
-        debug("Erro iniciar: " + e.message)
-      }
-    }
+<h3>${item.nome}</h3>
 
-    iniciar()
-  </script>
+<p>Status: ${item.status}</p>
+
+<p>Valor: R$ ${item.valor}</p>
+
+`
+
+if(item.status==="livre"){
+
+div.onclick=()=>reservar(item.id)
+
+}
+
+grid.appendChild(div)
+
+})
+
+}
+
+
+async function reservar(id){
+
+const { data } = await sb.auth.getUser()
+
+const reservadoEm = new Date()
+
+const reservadoAte = new Date(Date.now()+5*60*1000)
+
+await sb
+.from("items")
+.update({
+
+status:"reservado",
+usuario_id:data.user.id,
+reservado_em:reservadoEm,
+reservado_ate:reservadoAte
+
+})
+.eq("id",id)
+
+pixBox.style.display="block"
+
+carregarItens()
+
+}
+
+
+function copiarPix(){
+
+navigator.clipboard.writeText(chavePix)
+
+alert("Chave PIX copiada")
+
+}
+
+
+async function logout(){
+
+await sb.auth.signOut()
+
+window.location.href="login.html"
+
+}
+
+
+async function iniciar(){
+
+await carregarUsuario()
+
+await carregarCampanha()
+
+await carregarItens()
+
+}
+
+iniciar()
+
+</script>
+
 </body>
 </html>
