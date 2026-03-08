@@ -1,64 +1,69 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Kaique Rifas</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaique Rifas</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=200"></script>
 
-<style>
-body{font-family:Arial;background:#f3f3f3;margin:0;padding:20px}
-.card{background:#fff;padding:20px;border-radius:10px}
-</style>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f3f3f3;margin:0;padding:20px}
+    .card{background:#fff;padding:20px;border-radius:14px;max-width:700px;margin:0 auto}
+    h2{margin-top:0}
+    p{font-size:18px;line-height:1.5}
+  </style>
 </head>
-
 <body>
 
 <div class="card">
-
-<h2 id="titulo"></h2>
-
-<p id="status"></p>
-<p id="valor"></p>
-<p id="premio"></p>
-<p id="pix"></p>
-
+  <h2 id="titulo">Rifa</h2>
+  <p id="status">Carregando...</p>
+  <p id="valor"></p>
+  <p id="premio"></p>
+  <p id="pix"></p>
 </div>
 
 <script>
+async function carregar() {
+  const { data, error } = await sb
+    .from("campaigns")
+    .select("*")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-async function carregar(){
+  if (error || !data) {
+    document.getElementById("titulo").innerText = "Rifa"
+    document.getElementById("status").innerText = "Rifa desligada"
+    document.getElementById("valor").innerText = ""
+    document.getElementById("premio").innerText = ""
+    document.getElementById("pix").innerText = ""
+    return
+  }
 
-const {data}=await sb
-.from("campaigns")
-.select("*")
-.eq("id",1)
-.single()
+  if (!data.ativa) {
+    document.getElementById("titulo").innerText = "Rifa"
+    document.getElementById("status").innerText = "Rifa desligada"
+    document.getElementById("valor").innerText = ""
+    document.getElementById("premio").innerText = ""
+    document.getElementById("pix").innerText = ""
+    return
+  }
 
-if(!data.ativa){
-
-document.getElementById("titulo").innerText="Rifa"
-document.getElementById("status").innerText="Rifa desligada"
-document.getElementById("valor").innerText=""
-document.getElementById("premio").innerText=""
-document.getElementById("pix").innerText=""
-
-return
-}
-
-document.getElementById("titulo").innerText=data.nome_rifa
-document.getElementById("status").innerText="Rifa ligada"
-document.getElementById("valor").innerText="Valor: R$ "+data.valor
-document.getElementById("premio").innerText="Premiações: "+data.premiacao
-document.getElementById("pix").innerText="Pix: "+data.chave_pix
-
+  document.getElementById("titulo").innerText = data.nome_rifa || "Rifa"
+  document.getElementById("status").innerText = "Rifa ligada"
+  document.getElementById("valor").innerText = "Valor: R$ " + Number(data.valor || 0)
+  document.getElementById("premio").innerText = data.premiacao ? "Premiações: " + data.premiacao : ""
+  document.getElementById("pix").innerText = data.chave_pix ? "Pix: " + data.chave_pix : ""
 }
 
 carregar()
-
-setInterval(carregar,2000)
-
+setInterval(carregar, 2000)
 </script>
 
 </body>
