@@ -1,135 +1,178 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criar conta</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar conta</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=1100"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=2700"></script>
 
-  <style>
-    body{
-      font-family:Arial,sans-serif;
-      background:#f2f2f2;
-      margin:0;
-      padding:20px;
-    }
+<style>
+body{
+font-family:Arial,sans-serif;
+background:#f2f2f2;
+margin:0;
+padding:20px;
+}
 
-    .card{
-      background:white;
-      padding:25px;
-      border-radius:12px;
-      max-width:420px;
-      margin:auto;
-      box-shadow:0 2px 10px rgba(0,0,0,0.1);
-    }
+.container{
+max-width:600px;
+margin:auto;
+}
 
-    h2{
-      margin-top:0;
-    }
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+margin-top:40px;
+}
 
-    input{
-      width:100%;
-      padding:12px;
-      margin-top:10px;
-      margin-bottom:15px;
-      border-radius:8px;
-      border:1px solid #ccc;
-      font-size:16px;
-      box-sizing:border-box;
-    }
+h1{
+margin-top:0;
+}
 
-    button{
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:8px;
-      background:#0b3d91;
-      color:white;
-      font-size:16px;
-      cursor:pointer;
-      margin-bottom:10px;
-    }
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+margin-bottom:15px;
+font-size:16px;
+border:1px solid #ccc;
+border-radius:8px;
+box-sizing:border-box;
+}
 
-    .secundario{
-      background:#666;
-    }
+button{
+padding:12px 18px;
+font-size:16px;
+border:none;
+border-radius:8px;
+color:white;
+cursor:pointer;
+margin-right:10px;
+margin-top:5px;
+}
 
-    .msg{
-      margin-top:10px;
-      font-weight:bold;
-      text-align:center;
-      white-space:pre-line;
-    }
-  </style>
+.btn-criar{
+background:#0b3d91;
+}
+
+.btn-voltar{
+background:#666;
+}
+
+.msg{
+margin-top:15px;
+font-weight:bold;
+white-space:pre-line;
+}
+</style>
 </head>
 <body>
 
-<div class="card">
+<div class="container">
+  <div class="card">
+    <h1>Criar conta</h1>
 
-  <h2>Criar conta</h2>
+    <input id="email" placeholder="Email">
+    <input id="telefone" placeholder="Telefone">
+    <input id="senha" type="password" placeholder="Senha">
 
-  <input id="email" type="email" placeholder="Email">
-  <input id="senha" type="password" placeholder="Senha">
-  <input id="telefone" placeholder="Telefone">
+    <button class="btn-criar" onclick="criarConta()">Criar conta</button>
+    <button class="btn-voltar" onclick="window.location.href='login.html?v=2700'">Voltar</button>
 
-  <button onclick="criarConta()">Criar conta</button>
-  <button class="secundario" onclick="voltarLogin()">Voltar para login</button>
-
-  <div class="msg" id="msg"></div>
-
+    <div class="msg" id="msg"></div>
+  </div>
 </div>
 
 <script>
+function limparTelefone(tel){
+  return String(tel || "").replace(/\D/g, "")
+}
+
 async function criarConta(){
   const email = document.getElementById("email").value.trim().toLowerCase()
-  const senha = document.getElementById("senha").value.trim()
-  const telefone = document.getElementById("telefone").value.trim()
+  const telefone = limparTelefone(document.getElementById("telefone").value)
+  const senha = document.getElementById("senha").value
 
-  if(!email || !senha || !telefone){
-    document.getElementById("msg").innerText = "Preencha email, senha e telefone"
+  if(!email || !telefone || !senha){
+    document.getElementById("msg").innerText = "Preencha email, telefone e senha"
     return
   }
 
-  const { data, error } = await sb.auth.signUp({
+  if(telefone.length < 10){
+    document.getElementById("msg").innerText = "Telefone inválido"
+    return
+  }
+
+  const { data: perfilEmail, error: erroEmail } = await sb
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .limit(1)
+
+  if(erroEmail){
+    document.getElementById("msg").innerText = erroEmail.message
+    return
+  }
+
+  if(perfilEmail && perfilEmail.length > 0){
+    document.getElementById("msg").innerText = "Já existe conta com esse email"
+    return
+  }
+
+  const { data: perfilTelefone, error: erroTelefone } = await sb
+    .from("profiles")
+    .select("id")
+    .eq("telefone", telefone)
+    .limit(1)
+
+  if(erroTelefone){
+    document.getElementById("msg").innerText = erroTelefone.message
+    return
+  }
+
+  if(perfilTelefone && perfilTelefone.length > 0){
+    document.getElementById("msg").innerText = "Já existe conta com esse telefone"
+    return
+  }
+
+  const { data: authData, error: authError } = await sb.auth.signUp({
     email: email,
     password: senha
   })
 
-  if(error){
-    document.getElementById("msg").innerText = error.message
+  if(authError){
+    document.getElementById("msg").innerText = authError.message
     return
   }
 
-  const user = data.user
-
-  if(!user){
-    document.getElementById("msg").innerText = "Conta criada, mas não foi possível pegar o usuário"
+  if(!authData.user){
+    document.getElementById("msg").innerText = "Não foi possível criar a conta"
     return
   }
 
-  const { error: erroPerfil } = await sb
+  const { error: perfilError } = await sb
     .from("profiles")
-    .upsert({
-      id: user.id,
+    .insert({
+      id: authData.user.id,
       email: email,
-      telefone: telefone
+      telefone: telefone,
+      saldo: 0
     })
 
-  if(erroPerfil){
-    document.getElementById("msg").innerText = erroPerfil.message
+  if(perfilError){
+    document.getElementById("msg").innerText = perfilError.message
     return
   }
 
-  document.getElementById("msg").innerText = "Conta criada com sucesso. Agora faça login."
-}
+  document.getElementById("msg").innerText = "Conta criada com sucesso"
 
-function voltarLogin(){
-  window.location.href = "login.html"
+  setTimeout(() => {
+    window.location.href = "login.html?v=2700"
+  }, 1000)
 }
 </script>
 
