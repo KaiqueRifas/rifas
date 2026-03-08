@@ -9,7 +9,7 @@
   <title>Login - Kaique Rifas</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=900"></script>
+  <script src="config.js?v=901"></script>
 
   <style>
     body{
@@ -86,7 +86,7 @@
 
   <h3>Criar conta</h3>
 
-  <button onclick="criarConta()">Criar conta</button>
+  <button onclick="abrirCadastro()">Criar conta</button>
 
   <div class="msg" id="msg"></div>
 
@@ -115,26 +115,8 @@ async function entrar(){
   window.location.href = "index.html"
 }
 
-async function criarConta(){
-  const email = document.getElementById("email").value.trim()
-  const senha = document.getElementById("senha").value.trim()
-
-  if(!email || !senha){
-    document.getElementById("msg").innerText = "Preencha email e senha para criar a conta"
-    return
-  }
-
-  const { error } = await sb.auth.signUp({
-    email: email,
-    password: senha
-  })
-
-  if(error){
-    document.getElementById("msg").innerText = error.message
-    return
-  }
-
-  document.getElementById("msg").innerText = "Conta criada com sucesso. Agora faça login."
+function abrirCadastro(){
+  window.location.href = "cadastro.html"
 }
 </script>
 
