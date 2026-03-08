@@ -8,7 +8,7 @@
 <title>Rifa</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=1600"></script>
+<script src="config.js?v=2000"></script>
 
 <style>
 body{
@@ -52,6 +52,15 @@ cursor:pointer;
 
 .saque{
 background:#27ae60;
+padding:8px 14px;
+border-radius:6px;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+.deposito{
+background:#0b3d91;
 padding:8px 14px;
 border-radius:6px;
 color:white;
@@ -122,6 +131,7 @@ color:#0b3d91;
 </div>
 
 <div class="botoes-topo">
+<button class="deposito" onclick="window.location.href='deposito.html'">Depósito</button>
 <button class="saque" onclick="window.location.href='saque.html'">Saque</button>
 <button class="logout" onclick="logout()">Sair</button>
 </div>
@@ -147,154 +157,223 @@ let usuario = null
 let perfilAtual = null
 
 async function verificarLogin(){
-const { data } = await sb.auth.getUser()
+  const { data } = await sb.auth.getUser()
 
-if(!data.user){
-window.location.href="login.html"
-return
-}
+  if(!data.user){
+    window.location.href = "login.html"
+    return false
+  }
 
-usuario = data.user
-document.getElementById("email").innerText="Conta: "+usuario.email
+  usuario = data.user
+  document.getElementById("email").innerText = "Conta: " + usuario.email
+  return true
 }
 
 async function carregarPerfil(){
-const { data } = await sb
-.from("profiles")
-.select("*")
-.eq("id",usuario.id)
-.limit(1)
+  const { data, error } = await sb
+    .from("profiles")
+    .select("*")
+    .eq("id", usuario.id)
+    .limit(1)
 
-perfilAtual=data[0]
+  if(error || !data || data.length === 0){
+    perfilAtual = null
+    document.getElementById("saldo").innerText = "Saldo: R$ 0,00"
+    return
+  }
 
-document.getElementById("saldo").innerText=
-"Saldo: R$ "+Number(perfilAtual.saldo||0).toLocaleString("pt-BR",{minimumFractionDigits:2})
+  perfilAtual = data[0]
+
+  document.getElementById("saldo").innerText =
+    "Saldo: R$ " + Number(perfilAtual.saldo || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
 }
 
 async function logout(){
-await sb.auth.signOut()
-window.location.href="login.html"
+  await sb.auth.signOut()
+  window.location.href = "login.html"
+}
+
+function formatarReal(v){
+  return Number(v || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 }
 
 async function buscarCampanha(){
-const { data } = await sb
-.from("campaigns")
-.select("*")
-.order("id",{ascending:false})
-.limit(1)
+  const { data } = await sb
+    .from("campaigns")
+    .select("*")
+    .order("id", { ascending: false })
+    .limit(1)
 
-return data[0]
+  if(!data || data.length === 0) return null
+  return data[0]
 }
 
 async function carregarRifa(){
+  const campanha = await buscarCampanha()
+  const card = document.getElementById("card-rifa")
 
-const campanha=await buscarCampanha()
-const card=document.getElementById("card-rifa")
+  if(!campanha || !campanha.ativa){
+    card.innerHTML = `
+      <h2>Rifa</h2>
+      <p>Rifa desligada</p>
+    `
+    return
+  }
 
-if(!campanha || !campanha.ativa){
-
-card.innerHTML=`
-<h2>Rifa</h2>
-<p>Rifa desligada</p>
-`
-
-return
-}
-
-card.innerHTML=`
-<h2>${campanha.nome_rifa}</h2>
-<p>Rifa ligada</p>
-<p>Valor: R$ ${Number(campanha.valor).toLocaleString("pt-BR",{minimumFractionDigits:2})}</p>
-<p>${campanha.premiacao||""}</p>
-`
+  card.innerHTML = `
+    <h2>${campanha.nome_rifa}</h2>
+    <p>Rifa ligada</p>
+    <p>Valor: R$ ${formatarReal(campanha.valor)}</p>
+    <p>Premiações:</p>
+    <p>${campanha.premiacao || ""}</p>
+  `
 }
 
 async function reservar(id){
+  document.getElementById("mensagem").innerText = ""
 
-const campanha=await buscarCampanha()
+  const campanha = await buscarCampanha()
 
-if(!campanha || !campanha.ativa){
-document.getElementById("mensagem").innerText="Rifa desligada"
-return
-}
+  if(!campanha || !campanha.ativa){
+    document.getElementById("mensagem").innerText = "Rifa desligada"
+    return
+  }
 
-await carregarPerfil()
+  await carregarPerfil()
 
-if(perfilAtual.saldo < campanha.valor){
-document.getElementById("mensagem").innerText="Saldo insuficiente"
-return
-}
+  if(!perfilAtual){
+    document.getElementById("mensagem").innerText = "Perfil não encontrado"
+    return
+  }
 
-const novoSaldo=perfilAtual.saldo-campanha.valor
+  if(Number(perfilAtual.saldo || 0) < Number(campanha.valor || 0)){
+    document.getElementById("mensagem").innerText = "Saldo insuficiente"
+    return
+  }
 
-await sb
-.from("items")
-.update({
-status:"reservado",
-usuario_id:usuario.id,
-reservado_email:usuario.email
-})
-.eq("id",id)
+  const { data: itemData, error: itemErro } = await sb
+    .from("items")
+    .select("*")
+    .eq("id", id)
+    .limit(1)
 
-await sb
-.from("profiles")
-.update({
-saldo:novoSaldo
-})
-.eq("id",usuario.id)
+  if(itemErro || !itemData || itemData.length === 0){
+    document.getElementById("mensagem").innerText = "Item não encontrado"
+    return
+  }
 
-document.getElementById("mensagem").innerText="Bicho reservado"
+  const item = itemData[0]
 
-await carregarPerfil()
-await carregarItens()
+  if(item.status === "reservado" || item.status === "pago" || item.confirmado === true || item.pago === true){
+    document.getElementById("mensagem").innerText = "Esse bicho já não está livre"
+    return
+  }
+
+  const { data: minhasReservas } = await sb
+    .from("items")
+    .select("id")
+    .eq("usuario_id", usuario.id)
+    .eq("status", "reservado")
+
+  if(minhasReservas && minhasReservas.length > 0){
+    document.getElementById("mensagem").innerText = "Usuário já possui reserva"
+    return
+  }
+
+  const novoSaldo = Number(perfilAtual.saldo || 0) - Number(campanha.valor || 0)
+
+  const { error: erroItem } = await sb
+    .from("items")
+    .update({
+      status: "reservado",
+      reservado_email: usuario.email,
+      reservado_telefone: perfilAtual.telefone || "",
+      usuario_id: usuario.id,
+      reserved_by: usuario.id,
+      reservado_em: new Date().toISOString()
+    })
+    .eq("id", id)
+
+  if(erroItem){
+    document.getElementById("mensagem").innerText = erroItem.message
+    return
+  }
+
+  const { error: erroSaldo } = await sb
+    .from("profiles")
+    .update({
+      saldo: novoSaldo
+    })
+    .eq("id", usuario.id)
+
+  if(erroSaldo){
+    document.getElementById("mensagem").innerText = erroSaldo.message
+    return
+  }
+
+  document.getElementById("mensagem").innerText = "Bicho reservado com sucesso"
+  await carregarPerfil()
+  await carregarItens()
 }
 
 async function carregarItens(){
+  const campanha = await buscarCampanha()
 
-const campanha=await buscarCampanha()
+  const { data } = await sb
+    .from("items")
+    .select("*")
+    .order("id", { ascending: true })
 
-const { data } = await sb
-.from("items")
-.select("*")
-.order("id",{ascending:true})
+  const grid = document.getElementById("grid-itens")
+  grid.innerHTML = ""
 
-const grid=document.getElementById("grid-itens")
-grid.innerHTML=""
+  if(!data || data.length === 0){
+    grid.innerHTML = "<p>Nenhum item encontrado.</p>"
+    return
+  }
 
-data.forEach(item=>{
+  data.forEach(item => {
+    let classe = "livre"
+    let status = "Livre"
+    let click = `onclick="reservar(${item.id})"`
 
-let classe="livre"
-let status="Livre"
-let click=`onclick="reservar(${item.id})"`
+    if(!campanha || !campanha.ativa){
+      classe = "indisponivel"
+      status = "Indisponível"
+      click = ""
+    }else if(item.status === "reservado"){
+      classe = "reservado"
+      status = item.usuario_id === usuario.id ? "Reservado por você" : "Reservado"
+      click = ""
+    }else if(item.status === "pago" || item.confirmado === true || item.pago === true){
+      classe = "pago"
+      status = item.usuario_id === usuario.id ? "Pago por você" : "Pago"
+      click = ""
+    }
 
-if(!campanha || !campanha.ativa){
-classe="indisponivel"
-status="Indisponível"
-click=""
-}
-else if(item.status==="reservado"){
-classe="reservado"
-status="Reservado"
-click=""
-}
-
-grid.innerHTML+=`
-<div class="item ${classe}" ${click}>
-${item.nome}<br>
-${status}<br>
-R$ ${Number(campanha?campanha.valor:0).toLocaleString("pt-BR",{minimumFractionDigits:2})}
-</div>
-`
-
-})
-
+    grid.innerHTML += `
+      <div class="item ${classe}" ${click}>
+        ${item.nome}<br>
+        ${status}<br>
+        R$ ${formatarReal(campanha ? campanha.valor : 0)}
+      </div>
+    `
+  })
 }
 
 async function iniciar(){
-await verificarLogin()
-await carregarPerfil()
-await carregarRifa()
-await carregarItens()
+  const ok = await verificarLogin()
+  if(!ok) return
+
+  await carregarPerfil()
+  await carregarRifa()
+  await carregarItens()
 }
 
 iniciar()
