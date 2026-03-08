@@ -48,6 +48,8 @@
 
   let chavePix = ""
   let userId = ""
+  let userEmail = ""
+  let userTelefone = ""
 
   function tempoRestante(reserva) {
     const agora = new Date()
@@ -71,7 +73,33 @@
     }
 
     userId = data.user.id
-    document.getElementById("userEmail").innerText = data.user.email
+    userEmail = data.user.email || ""
+
+    document.getElementById("userEmail").innerText = userEmail
+
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle()
+
+    if (profile) {
+      userTelefone = profile.telefone || ""
+      if (!profile.email && userEmail) {
+        await sb.from("profiles").upsert({
+          id: userId,
+          email: userEmail,
+          telefone: userTelefone
+        })
+      }
+    } else {
+      await sb.from("profiles").upsert({
+        id: userId,
+        email: userEmail,
+        telefone: ""
+      })
+      userTelefone = ""
+    }
   }
 
   async function carregarCampanha() {
@@ -160,7 +188,9 @@
         usuario_id: userId,
         reservado_em: reservadoEm,
         reservado_ate: reservadoAte,
-        pago: false
+        pago: false,
+        reservado_email: userEmail,
+        reservado_telefone: userTelefone
       })
       .eq("id", id)
 
