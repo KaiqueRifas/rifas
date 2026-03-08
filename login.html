@@ -1,126 +1,141 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Rifa</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Kaique Rifas</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=900"></script>
 
-<style>
-body{
-font-family: Arial, sans-serif;
-background:#f2f2f2;
-padding:20px;
-margin:0;
-}
+  <style>
+    body{
+      font-family:Arial,sans-serif;
+      background:#f2f2f2;
+      padding:20px;
+      margin:0;
+    }
 
-.card{
-background:white;
-padding:25px;
-border-radius:12px;
-max-width:400px;
-margin:auto;
-box-shadow:0 2px 10px rgba(0,0,0,0.1);
-}
+    .card{
+      background:white;
+      padding:25px;
+      border-radius:12px;
+      max-width:420px;
+      margin:auto;
+      box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
 
-input{
-width:100%;
-padding:12px;
-margin-top:10px;
-margin-bottom:15px;
-border-radius:8px;
-border:1px solid #ccc;
-font-size:16px;
-box-sizing:border-box;
-}
+    h2,h3{
+      margin-top:0;
+    }
 
-button{
-width:100%;
-padding:12px;
-border:none;
-border-radius:8px;
-background:#0b3d91;
-color:white;
-font-size:16px;
-cursor:pointer;
-margin-bottom:10px;
-}
+    input{
+      width:100%;
+      padding:12px;
+      margin-top:10px;
+      margin-bottom:15px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      font-size:16px;
+      box-sizing:border-box;
+    }
 
-button:hover{
-opacity:0.9;
-}
+    button{
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:8px;
+      background:#0b3d91;
+      color:white;
+      font-size:16px;
+      cursor:pointer;
+      margin-bottom:10px;
+    }
 
-.msg{
-margin-top:10px;
-font-weight:bold;
-text-align:center;
-}
-</style>
+    button:hover{
+      opacity:0.9;
+    }
+
+    hr{
+      margin:20px 0;
+    }
+
+    .msg{
+      margin-top:10px;
+      font-weight:bold;
+      text-align:center;
+      white-space:pre-line;
+    }
+  </style>
 </head>
-
 <body>
 
 <div class="card">
 
-<h2>Entrar</h2>
+  <h2>Entrar</h2>
 
-<input id="email" placeholder="Email">
-<input id="senha" type="password" placeholder="Senha">
+  <input id="email" type="email" placeholder="Email">
+  <input id="senha" type="password" placeholder="Senha">
 
-<button onclick="login()">Entrar</button>
+  <button onclick="entrar()">Entrar</button>
 
-<hr>
+  <hr>
 
-<h3>Criar conta</h3>
+  <h3>Criar conta</h3>
 
-<button onclick="cadastro()">Criar conta</button>
+  <button onclick="criarConta()">Criar conta</button>
 
-<div class="msg" id="msg"></div>
+  <div class="msg" id="msg"></div>
 
 </div>
 
 <script>
+async function entrar(){
+  const email = document.getElementById("email").value.trim()
+  const senha = document.getElementById("senha").value.trim()
 
-async function login(){
+  if(!email || !senha){
+    document.getElementById("msg").innerText = "Preencha email e senha"
+    return
+  }
 
-const email = document.getElementById("email").value
-const senha = document.getElementById("senha").value
+  const { error } = await sb.auth.signInWithPassword({
+    email: email,
+    password: senha
+  })
 
-const { data, error } = await sb.auth.signInWithPassword({
-email: email,
-password: senha
-})
+  if(error){
+    document.getElementById("msg").innerText = error.message
+    return
+  }
 
-if(error){
-document.getElementById("msg").innerText = error.message
-return
+  window.location.href = "index.html"
 }
 
-window.location.href = "index.html"
+async function criarConta(){
+  const email = document.getElementById("email").value.trim()
+  const senha = document.getElementById("senha").value.trim()
 
+  if(!email || !senha){
+    document.getElementById("msg").innerText = "Preencha email e senha para criar a conta"
+    return
+  }
+
+  const { error } = await sb.auth.signUp({
+    email: email,
+    password: senha
+  })
+
+  if(error){
+    document.getElementById("msg").innerText = error.message
+    return
+  }
+
+  document.getElementById("msg").innerText = "Conta criada com sucesso. Agora faça login."
 }
-
-async function cadastro(){
-
-const email = document.getElementById("email").value
-const senha = document.getElementById("senha").value
-
-const { data, error } = await sb.auth.signUp({
-email: email,
-password: senha
-})
-
-if(error){
-document.getElementById("msg").innerText = error.message
-return
-}
-
-document.getElementById("msg").innerText = "Conta criada. Agora faça login."
-
-}
-
 </script>
 
 </body>
