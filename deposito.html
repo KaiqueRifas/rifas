@@ -1,25 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Depósito</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=2100"></script>
+<script src="config.js?v=2400"></script>
 
 <style>
+
 body{
 font-family:Arial;
 background:#f2f2f2;
-padding:20px;
 margin:0;
+padding:20px;
 }
 
 .container{
-max-width:600px;
+max-width:700px;
 margin:auto;
 }
 
@@ -27,82 +26,64 @@ margin:auto;
 display:flex;
 justify-content:space-between;
 align-items:center;
-gap:10px;
 margin-bottom:20px;
 }
 
-.topo-botoes{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:10px;
-margin-bottom:20px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-
-input{
-width:100%;
-padding:12px;
-margin-bottom:12px;
-border:1px solid #ccc;
-border-radius:8px;
-font-size:16px;
-box-sizing:border-box;
-}
-
-button{
+.btn{
+padding:12px 18px;
 border:none;
-padding:12px 16px;
-color:white;
 border-radius:8px;
-cursor:pointer;
+color:white;
 font-size:16px;
-}
-
-.btn-deposito{
-background:#0b3d91;
-width:100%;
+cursor:pointer;
 }
 
 .btn-voltar{
-background:#0b3d91;
+background:#1e4d94;
 }
 
 .btn-sair{
 background:#c0392b;
 }
 
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+margin-bottom:20px;
+}
+
+input{
+width:100%;
+padding:12px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:16px;
+margin-top:10px;
+margin-bottom:15px;
+box-sizing:border-box;
+}
+
+.btn-deposito{
+background:#1e4d94;
+width:100%;
+}
+
+.pix{
+font-size:26px;
+font-weight:bold;
+color:#1e4d94;
+margin-top:10px;
+}
+
 .item{
-border-bottom:1px solid #eee;
-padding:12px 0;
-font-size:17px;
-}
-
-.msg{
+border-top:1px solid #ddd;
+padding-top:10px;
 margin-top:10px;
-font-weight:bold;
-white-space:pre-line;
 }
 
-.info{
-font-size:18px;
-line-height:1.6;
-}
-
-.pix-fixo{
-font-size:22px;
-font-weight:bold;
-color:#0b3d91;
-margin-top:10px;
-word-break:break-word;
-}
 </style>
-
 </head>
 
 <body>
@@ -110,193 +91,157 @@ word-break:break-word;
 <div class="container">
 
 <div class="topo">
-  <h1>Depósito</h1>
+<h1>Depósito</h1>
 
-  <div class="topo-botoes">
-    <button class="btn-voltar" onclick="voltar()">Voltar</button>
-    <button class="btn-sair" onclick="logout()">Sair</button>
-  </div>
+<div>
+<button class="btn btn-voltar" onclick="voltar()">Voltar</button>
+<button class="btn btn-sair" onclick="logout()">Sair</button>
+</div>
 </div>
 
-<div class="card">
-  <div class="info" id="email"></div>
-  <div class="info" id="saldo"></div>
-</div>
-
-<div class="card">
-  <h2>Pix para depósito</h2>
-  <div class="info">Faça o depósito usando a chave abaixo:</div>
-  <div class="pix-fixo">123.123.123.12</div>
-</div>
+<div class="card" id="dadosConta"></div>
 
 <div class="card">
 
-  <h2>Solicitar depósito</h2>
+<h2>Pix para depósito</h2>
 
-  <input id="valor" placeholder="Valor">
-  <input id="comprovante" placeholder="Comprovante / descrição / chave usada">
+<p>Faça o depósito usando a chave abaixo:</p>
 
-  <button class="btn-deposito" onclick="solicitar()">Solicitar depósito</button>
-
-  <div id="msg" class="msg"></div>
+<div class="pix">
+123.123.123.12
+</div>
 
 </div>
 
 <div class="card">
 
-  <h3>Histórico de depósitos</h3>
+<h2>Solicitar depósito</h2>
 
-  <div id="historico"></div>
+<input id="valor" placeholder="Valor">
+
+<button class="btn btn-deposito" onclick="solicitarDeposito()">
+Solicitar depósito
+</button>
+
+<div id="msg"></div>
+
+</div>
+
+<div class="card">
+
+<h2>Histórico de depósitos</h2>
+
+<div id="historico"></div>
 
 </div>
 
 </div>
 
 <script>
-let usuario = null
-let perfilAtual = null
+
+let usuario
+
+function voltar(){
+window.location.href="index.html"
+}
+
+function logout(){
+localStorage.removeItem("usuario")
+window.location.href="login.html"
+}
 
 function formatarReal(v){
-  return Number(v || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2})
 }
 
-function formatarData(data){
-  const d = new Date(data)
-  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR")
+function formatarData(d){
+const data = new Date(d)
+return data.toLocaleDateString("pt-BR")+" "+data.toLocaleTimeString("pt-BR")
 }
 
-function tratarValor(valor){
-  const limpo = String(valor || "")
-    .replace(/\s/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-  const numero = parseFloat(limpo)
-  return isNaN(numero) ? 0 : numero
+async function carregar(){
+
+usuario = JSON.parse(localStorage.getItem("usuario"))
+
+if(!usuario){
+window.location.href="login.html"
+return
 }
 
-async function verificarLogin(){
-  const { data } = await sb.auth.getUser()
+document.getElementById("dadosConta").innerHTML = `
+Conta: ${usuario.email}<br>
+Saldo: R$ ${formatarReal(usuario.saldo)}
+`
 
-  if(!data.user){
-    window.location.href = "login.html"
-    return false
-  }
+carregarHistorico()
 
-  usuario = data.user
-  return true
 }
 
-async function carregarPerfil(){
-  const { data, error } = await sb
-    .from("profiles")
-    .select("*")
-    .eq("id", usuario.id)
-    .limit(1)
+async function solicitarDeposito(){
 
-  if(error || !data || data.length === 0){
-    perfilAtual = null
-    document.getElementById("email").innerText = "Conta: " + usuario.email
-    document.getElementById("saldo").innerText = "Saldo: R$ 0,00"
-    return
-  }
+const valor = parseFloat(
+document.getElementById("valor").value
+.replace(",",".")
+)
 
-  perfilAtual = data[0]
-
-  document.getElementById("email").innerText = "Conta: " + usuario.email
-  document.getElementById("saldo").innerText = "Saldo: R$ " + formatarReal(perfilAtual.saldo || 0)
+if(!valor || valor<=0){
+document.getElementById("msg").innerText="Digite um valor válido"
+return
 }
 
-async function solicitar(){
-  document.getElementById("msg").innerText = ""
+const { error } = await sb
+.from("depositos")
+.insert({
+email:usuario.email,
+valor:valor,
+status:"pendente"
+})
 
-  const valor = tratarValor(document.getElementById("valor").value)
-  const comprovante = document.getElementById("comprovante").value.trim()
+if(error){
+document.getElementById("msg").innerText=error.message
+return
+}
 
-  if(valor <= 0){
-    document.getElementById("msg").innerText = "Informe um valor válido"
-    return
-  }
+document.getElementById("msg").innerText="Depósito solicitado"
 
-  if(!comprovante){
-    document.getElementById("msg").innerText = "Preencha o comprovante ou descrição"
-    return
-  }
+document.getElementById("valor").value=""
 
-  const { error } = await sb
-    .from("depositos")
-    .insert({
-      usuario_id: usuario.id,
-      email: usuario.email,
-      valor: valor,
-      comprovante: comprovante,
-      status: "pendente"
-    })
+carregarHistorico()
 
-  if(error){
-    document.getElementById("msg").innerText = error.message
-    return
-  }
-
-  document.getElementById("valor").value = ""
-  document.getElementById("comprovante").value = ""
-  document.getElementById("msg").innerText = "Depósito solicitado com sucesso"
-
-  await carregarHistorico()
 }
 
 async function carregarHistorico(){
-  const { data, error } = await sb
-    .from("depositos")
-    .select("*")
-    .eq("usuario_id", usuario.id)
-    .order("id", { ascending: false })
 
-  const div = document.getElementById("historico")
-  div.innerHTML = ""
+const { data } = await sb
+.from("depositos")
+.select("*")
+.eq("email",usuario.email)
+.order("id",{ascending:false})
 
-  if(error){
-    div.innerHTML = `<div class="item">${error.message}</div>`
-    return
-  }
+let html=""
 
-  if(!data || data.length === 0){
-    div.innerHTML = `<div class="item">Nenhum depósito solicitado.</div>`
-    return
-  }
-
-  data.forEach(d => {
-    div.innerHTML += `
-      <div class="item">
-        Valor: R$ ${formatarReal(d.valor)}<br>
-        Comprovante: ${d.comprovante || "-"}<br>
-        Status: ${d.status || "-"}<br>
-        Data: ${formatarData(d.created_at)}
-      </div>
-    `
-  })
+if(!data || data.length===0){
+html="Nenhum depósito"
 }
 
-function voltar(){
-  window.location.href = "index.html"
+data.forEach(d=>{
+
+html+=`
+<div class="item">
+Valor: R$ ${formatarReal(d.valor)}<br>
+Status: ${d.status}<br>
+Data: ${formatarData(d.created_at)}
+</div>
+`
+
+})
+
+document.getElementById("historico").innerHTML=html
+
 }
 
-async function logout(){
-  await sb.auth.signOut()
-  window.location.href = "login.html"
-}
+carregar()
 
-async function iniciar(){
-  const ok = await verificarLogin()
-  if(!ok) return
-
-  await carregarPerfil()
-  await carregarHistorico()
-}
-
-iniciar()
 </script>
 
 </body>
