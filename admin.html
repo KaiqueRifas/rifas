@@ -75,7 +75,7 @@ font-weight:bold;
 
 const supabase = window.supabase.createClient(
 "https://hmtjkivzokhljxmrqime.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6InN1cGFiYXNlIiwicmVmIjoiaG10amtpdnpva2hsanhxcmFtZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzcyOTYxODAxLCJleHAiOjIwODg1Mzc4MDF9.gJ6D7juAmcgI_tYc39JGeYOEcI5G5gUwxqyh3vwDR9w"
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdGpraXZ6b2tobGp4bXJxaW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjE4MDEsImV4cCI6MjA4ODUzNzgwMX0.gJ6D7juAmcgI_tYc39JGeYOEcI5G5gUwxqyh3vwDR9w"
 )
 
 async function carregar(){
@@ -104,12 +104,13 @@ let premiacao = document.getElementById("premiacao").value
 
 await supabase
 .from("campaigns")
-.insert({
+.update({
 nome_rifa:nome,
 valor:valor,
 premiacao:premiacao,
 ativa:true
 })
+.eq("id",1)
 
 document.getElementById("msg").innerText="Rifa salva e ligada"
 
@@ -119,9 +120,10 @@ async function desligar(){
 
 await supabase
 .from("campaigns")
-.insert({
+.update({
 ativa:false
 })
+.eq("id",1)
 
 document.getElementById("msg").innerText="Rifa desligada"
 
