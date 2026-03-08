@@ -9,7 +9,7 @@
   <title>Admin Rifa</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=1000"></script>
+  <script src="config.js?v=1300"></script>
 
   <style>
     body{
@@ -158,6 +158,24 @@ async function buscarCampanhaMaisRecente(){
   return null
 }
 
+async function limparItens(){
+  const { error } = await sb
+    .from("items")
+    .update({
+      status: "livre",
+      confirmado: false,
+      pago: false,
+      usuario_id: null,
+      reserved_by: null,
+      reservado_email: null,
+      reservado_telefone: null,
+      reservado_em: null
+    })
+    .not("id", "is", null)
+
+  return error
+}
+
 async function carregar(){
   const campanha = await buscarCampanhaMaisRecente()
 
@@ -198,6 +216,15 @@ async function salvar(){
     return
   }
 
+  document.getElementById("msg").innerText = "Salvando e limpando itens..."
+
+  const erroLimpeza = await limparItens()
+
+  if(erroLimpeza){
+    document.getElementById("msg").innerText = erroLimpeza.message
+    return
+  }
+
   const { error } = await sb
     .from("campaigns")
     .update({
@@ -214,7 +241,7 @@ async function salvar(){
     return
   }
 
-  document.getElementById("msg").innerText = "Rifa salva e ligada"
+  document.getElementById("msg").innerText = "Nova rifa salva, ligada e itens resetados"
   await carregar()
 }
 
@@ -227,6 +254,15 @@ async function desligar(){
   }
 
   campanhaAtualId = campanha.id
+
+  document.getElementById("msg").innerText = "Desligando e limpando itens..."
+
+  const erroLimpeza = await limparItens()
+
+  if(erroLimpeza){
+    document.getElementById("msg").innerText = erroLimpeza.message
+    return
+  }
 
   const { error } = await sb
     .from("campaigns")
@@ -247,7 +283,7 @@ async function desligar(){
   document.getElementById("nome").value = ""
   document.getElementById("valor").value = ""
   document.getElementById("premiacao").value = ""
-  document.getElementById("msg").innerText = "Rifa desligada"
+  document.getElementById("msg").innerText = "Rifa desligada e itens resetados"
 }
 
 async function adicionarSaldo(){
