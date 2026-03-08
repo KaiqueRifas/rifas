@@ -8,7 +8,7 @@
 <title>Rifa</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=2600"></script>
+<script src="config.js?v=2800"></script>
 
 <style>
 body{
@@ -114,6 +114,39 @@ margin-top:6px;
 font-weight:bold;
 color:#0b3d91;
 }
+
+.notificacao{
+border-top:1px solid #eee;
+padding:12px 0;
+font-size:16px;
+line-height:1.5;
+}
+
+.notificacao:first-child{
+border-top:none;
+padding-top:0;
+}
+
+.nao-lida{
+background:#eef4ff;
+padding:12px;
+border-radius:8px;
+}
+
+.btn-pequeno{
+background:#1f8f4e;
+padding:8px 12px;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+margin-top:10px;
+}
+
+.vazio{
+color:#666;
+font-size:16px;
+}
 </style>
 
 </head>
@@ -131,8 +164,8 @@ color:#0b3d91;
 </div>
 
 <div class="botoes-topo">
-<button class="deposito" onclick="window.location.href='deposito.html?v=2600'">Depósito</button>
-<button class="saque" onclick="window.location.href='saque.html?v=2600'">Saque</button>
+<button class="deposito" onclick="window.location.href='deposito.html?v=2800'">Depósito</button>
+<button class="saque" onclick="window.location.href='saque.html?v=2800'">Saque</button>
 <button class="logout" onclick="logout()">Sair</button>
 </div>
 
@@ -140,6 +173,12 @@ color:#0b3d91;
 
 <div class="card" id="card-rifa">
 Carregando rifa...
+</div>
+
+<div class="card">
+<h3>Notificações</h3>
+<div id="listaNotificacoes">Carregando notificações...</div>
+<button class="btn-pequeno" onclick="marcarTodasLidas()">Marcar todas como lidas</button>
 </div>
 
 <div class="card">
@@ -200,6 +239,19 @@ function formatarReal(v){
   return Number(v || 0).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  })
+}
+
+function formatarData(data){
+  const d = new Date(data)
+  return d.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
   })
 }
 
@@ -367,12 +419,60 @@ async function carregarItens(){
   })
 }
 
+async function carregarNotificacoes(){
+  const { data, error } = await sb
+    .from("notificacoes")
+    .select("*")
+    .eq("usuario_id", usuario.id)
+    .order("id", { ascending: false })
+    .limit(20)
+
+  const div = document.getElementById("listaNotificacoes")
+  div.innerHTML = ""
+
+  if(error){
+    div.innerHTML = `<div class="vazio">${error.message}</div>`
+    return
+  }
+
+  if(!data || data.length === 0){
+    div.innerHTML = `<div class="vazio">Nenhuma notificação.</div>`
+    return
+  }
+
+  data.forEach(n => {
+    div.innerHTML += `
+      <div class="notificacao ${n.lida ? "" : "nao-lida"}">
+        <strong>${n.titulo || "Notificação"}</strong><br>
+        ${n.mensagem || ""}<br>
+        <small>${formatarData(n.created_at)}</small>
+      </div>
+    `
+  })
+}
+
+async function marcarTodasLidas(){
+  const { error } = await sb
+    .from("notificacoes")
+    .update({ lida: true })
+    .eq("usuario_id", usuario.id)
+    .eq("lida", false)
+
+  if(error){
+    document.getElementById("mensagem").innerText = error.message
+    return
+  }
+
+  await carregarNotificacoes()
+}
+
 async function iniciar(){
   const ok = await verificarLogin()
   if(!ok) return
 
   await carregarPerfil()
   await carregarRifa()
+  await carregarNotificacoes()
   await carregarItens()
 }
 
