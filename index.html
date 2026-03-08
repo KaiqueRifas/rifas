@@ -1,28 +1,182 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaique Rifas</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="style.css?v=500">
+<title>Kaique Rifas</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=500"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+margin:0;
+padding:20px;
+}
+
+.container{
+max-width:600px;
+margin:auto;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-bottom:20px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.item{
+padding:20px;
+border-radius:10px;
+text-align:center;
+cursor:pointer;
+font-weight:bold;
+}
+
+.livre{
+background:#9be29b;
+}
+
+.reservado{
+background:#ffd27a;
+}
+
+.pago{
+background:#ff8c8c;
+}
+
+</style>
 </head>
+
 <body>
 
-  <div class="card">
-    <h1 id="titulo">Rifa</h1>
-    <p id="status">Carregando...</p>
-    <p id="valor"></p>
-    <p id="premio"></p>
-    <p id="pix"></p>
-  </div>
+<div class="container">
 
-  <script src="index.js?v=500"></script>
+<div class="card" id="card-rifa">
+Carregando rifa...
+</div>
+
+<div class="card">
+
+<h2>Itens disponíveis</h2>
+
+<div class="grid" id="grid-itens"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://SEU_PROJETO.supabase.co"
+const SUPABASE_KEY = "SUA_PUBLIC_KEY"
+
+const supabase = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+
+async function carregarRifa(){
+
+const { data } = await supabase
+.from("campaigns")
+.select("*")
+.eq("ativa",true)
+.single()
+
+const card = document.getElementById("card-rifa")
+
+if(!data){
+
+card.innerHTML = `
+<h2>Rifa</h2>
+<p>Rifa desligada</p>
+`
+
+return
+}
+
+card.innerHTML = `
+<h2>${data.nome_rifa}</h2>
+<p>Rifa ligada</p>
+<p>Valor: R$ ${Number(data.valor).toFixed(2)}</p>
+<p>Premiações:</p>
+<p>${data.premiacao}</p>
+<p>Pix: ${data.chave_pix}</p>
+`
+}
+
+async function carregarItens(){
+
+const { data } = await supabase
+.from("items")
+.select("*")
+.order("id")
+
+const grid = document.getElementById("grid-itens")
+
+grid.innerHTML = ""
+
+data.forEach(item=>{
+
+let classe = "livre"
+let status = "Livre"
+
+if(item.status==="reservado"){
+classe="reservado"
+status="Reservado"
+}
+
+if(item.confirmado){
+classe="pago"
+status="Pago"
+}
+
+grid.innerHTML += `
+<div class="item ${classe}" onclick="reservar(${item.id})">
+${item.nome}<br>
+${status}<br>
+R$ ${Number(item.valor).toFixed(2)}
+</div>
+`
+
+})
+
+}
+
+async function reservar(id){
+
+const nome = prompt("Seu nome")
+if(!nome) return
+
+const telefone = prompt("Seu telefone")
+if(!telefone) return
+
+await supabase
+.from("items")
+.update({
+status:"reservado",
+reservado_nome:nome,
+reservado_telefone:telefone
+})
+.eq("id",id)
+
+carregarItens()
+
+}
+
+carregarRifa()
+carregarItens()
+
+</script>
+
 </body>
 </html>
