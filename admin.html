@@ -1,205 +1,134 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin</title>
+<meta charset="UTF-8">
+<title>Admin Rifa</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=700"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    body{
-      font-family:Arial,sans-serif;
-      background:#f3f3f3;
-      margin:0;
-      padding:20px;
-    }
-    .card{
-      background:#fff;
-      padding:20px;
-      border-radius:14px;
-      max-width:700px;
-      margin:0 auto;
-      box-shadow:0 2px 10px rgba(0,0,0,0.08);
-    }
-    h1{margin-top:0}
-    input,textarea{
-      width:100%;
-      padding:14px;
-      margin-top:12px;
-      font-size:18px;
-      box-sizing:border-box;
-      border:1px solid #bbb;
-      border-radius:10px;
-    }
-    .acoes{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:14px;
-    }
-    button{
-      padding:12px 20px;
-      font-size:18px;
-      border:none;
-      border-radius:10px;
-      background:#0d2d5f;
-      color:#fff;
-      font-weight:bold;
-      cursor:pointer;
-    }
-    #msg{
-      margin-top:18px;
-      font-size:18px;
-      white-space:pre-line;
-    }
-  </style>
+<style>
+body{
+font-family: Arial, sans-serif;
+background:#f2f2f2;
+padding:20px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+max-width:500px;
+margin:auto;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+input, textarea{
+width:100%;
+padding:12px;
+margin-top:10px;
+margin-bottom:15px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:16px;
+}
+
+button{
+padding:12px 20px;
+border:none;
+border-radius:8px;
+background:#0b3d91;
+color:white;
+font-size:16px;
+cursor:pointer;
+margin-right:10px;
+}
+
+button:hover{
+opacity:0.9;
+}
+
+.msg{
+margin-top:15px;
+font-weight:bold;
+}
+</style>
 </head>
+
 <body>
 
 <div class="card">
-  <h1>Editar rifa</h1>
 
-  <input id="nome" placeholder="Nome da rifa">
-  <input id="valor" placeholder="Valor da rifa">
-  <textarea id="premio" placeholder="Premiações" rows="4"></textarea>
-  <input id="pix" placeholder="Pix">
+<h2>Editar rifa</h2>
 
-  <div class="acoes">
-    <button onclick="salvar()">Salvar</button>
-    <button onclick="desligar()">Desligar rifa</button>
-  </div>
+<input id="nome" placeholder="Nome da rifa">
+<input id="valor" placeholder="0,00">
+<textarea id="premiacao" rows="5" placeholder="Premiações"></textarea>
 
-  <p id="msg"></p>
+<button onclick="salvar()">Salvar</button>
+<button onclick="desligar()">Desligar rifa</button>
+
+<div class="msg" id="msg"></div>
+
 </div>
 
 <script>
-function tratarValor(v){
-  const limpo = String(v || "")
-    .replace(/\s/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-  const numero = parseFloat(limpo)
-  return isNaN(numero) ? 0 : numero
-}
 
-function formatarValorInput(v){
-  if (v === null || v === undefined || v === "") return ""
-  return Number(v).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
-}
+const supabase = window.supabase.createClient(
+"https://hmtjkivzokhljxmrqime.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpcCI6InN1cGFiYXNlIiwicmVmIjoiaG10amtpdnpva2hsanhxcmFtZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzcyOTYxODAxLCJleHAiOjIwODg1Mzc4MDF9.gJ6D7juAmcgI_tYc39JGeYOEcI5G5gUwxqyh3vwDR9w"
+)
 
 async function carregar(){
-  const { data, error } = await sb
-    .from("campaigns")
-    .select("*")
-    .order("id", { ascending: false })
-    .limit(1)
 
-  if (error || !data || data.length === 0){
-    document.getElementById("nome").value = ""
-    document.getElementById("valor").value = ""
-    document.getElementById("premio").value = ""
-    document.getElementById("pix").value = ""
-    document.getElementById("msg").innerText = "Nenhuma campanha encontrada"
-    return
-  }
+let {data} = await supabase
+.from("campaigns")
+.select("*")
+.order("id",{ascending:false})
+.limit(1)
 
-  const campanha = data[0]
+if(data && data.length){
 
-  document.getElementById("nome").value = campanha.nome_rifa || ""
-  document.getElementById("valor").value = formatarValorInput(campanha.valor)
-  document.getElementById("premio").value = campanha.premiacao || ""
-  document.getElementById("pix").value = campanha.chave_pix || ""
-  document.getElementById("msg").innerText = campanha.ativa ? "Rifa ligada" : "Rifa desligada"
+document.getElementById("nome").value = data[0].nome_rifa || ""
+document.getElementById("valor").value = data[0].valor || ""
+document.getElementById("premiacao").value = data[0].premiacao || ""
+
+}
+
 }
 
 async function salvar(){
-  const nome = document.getElementById("nome").value.trim()
-  const valor = tratarValor(document.getElementById("valor").value)
-  const premio = document.getElementById("premio").value.trim()
-  const pix = document.getElementById("pix").value.trim()
 
-  if (!nome || valor <= 0 || !pix){
-    document.getElementById("msg").innerText = "Preencha nome, valor e pix"
-    return
-  }
+let nome = document.getElementById("nome").value
+let valor = document.getElementById("valor").value.replace(",",".")
+let premiacao = document.getElementById("premiacao").value
 
-  document.getElementById("msg").innerText = "Salvando..."
+await supabase
+.from("campaigns")
+.insert({
+nome_rifa:nome,
+valor:valor,
+premiacao:premiacao,
+ativa:true
+})
 
-  const apagar = await sb
-    .from("campaigns")
-    .delete()
-    .not("id", "is", null)
+document.getElementById("msg").innerText="Rifa salva e ligada"
 
-  if (apagar.error){
-    document.getElementById("msg").innerText = apagar.error.message
-    return
-  }
-
-  const inserir = await sb
-    .from("campaigns")
-    .insert({
-      ativa: true,
-      titulo: nome,
-      nome_rifa: nome,
-      valor: valor,
-      premiacao: premio,
-      chave_pix: pix
-    })
-
-  if (inserir.error){
-    document.getElementById("msg").innerText = inserir.error.message
-    return
-  }
-
-  document.getElementById("msg").innerText = "Rifa salva e ligada"
-  await carregar()
 }
 
 async function desligar(){
-  document.getElementById("msg").innerText = "Desligando..."
 
-  const apagar = await sb
-    .from("campaigns")
-    .delete()
-    .not("id", "is", null)
+await supabase
+.from("campaigns")
+.insert({
+ativa:false
+})
 
-  if (apagar.error){
-    document.getElementById("msg").innerText = apagar.error.message
-    return
-  }
+document.getElementById("msg").innerText="Rifa desligada"
 
-  const inserir = await sb
-    .from("campaigns")
-    .insert({
-      ativa: false,
-      titulo: "",
-      nome_rifa: "",
-      valor: 0,
-      premiacao: "",
-      chave_pix: ""
-    })
-
-  if (inserir.error){
-    document.getElementById("msg").innerText = inserir.error.message
-    return
-  }
-
-  document.getElementById("nome").value = ""
-  document.getElementById("valor").value = ""
-  document.getElementById("premio").value = ""
-  document.getElementById("pix").value = ""
-  document.getElementById("msg").innerText = "Rifa desligada"
 }
 
 carregar()
+
 </script>
 
 </body>
