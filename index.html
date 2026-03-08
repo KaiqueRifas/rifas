@@ -8,7 +8,7 @@
 <title>Rifa</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=2800"></script>
+<script src="config.js?v=2900"></script>
 
 <style>
 body{
@@ -39,6 +39,7 @@ font-size:14px;
 display:flex;
 gap:10px;
 flex-wrap:wrap;
+align-items:center;
 }
 
 .logout{
@@ -66,6 +67,34 @@ border-radius:6px;
 color:white;
 border:none;
 cursor:pointer;
+}
+
+.notif-btn{
+background:#444;
+padding:8px 14px;
+border-radius:6px;
+color:white;
+border:none;
+cursor:pointer;
+position:relative;
+}
+
+.notif-badge{
+position:absolute;
+top:-6px;
+right:-6px;
+background:#e74c3c;
+color:white;
+font-size:11px;
+font-weight:bold;
+min-width:20px;
+height:20px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:0 4px;
+box-sizing:border-box;
 }
 
 .card{
@@ -147,6 +176,10 @@ margin-top:10px;
 color:#666;
 font-size:16px;
 }
+
+.oculto{
+display:none;
+}
 </style>
 
 </head>
@@ -164,8 +197,12 @@ font-size:16px;
 </div>
 
 <div class="botoes-topo">
-<button class="deposito" onclick="window.location.href='deposito.html?v=2800'">Depósito</button>
-<button class="saque" onclick="window.location.href='saque.html?v=2800'">Saque</button>
+<button class="notif-btn" onclick="toggleNotificacoes()">
+Notificações
+<span id="notifBadge" class="notif-badge oculto">0</span>
+</button>
+<button class="deposito" onclick="window.location.href='deposito.html?v=2900'">Depósito</button>
+<button class="saque" onclick="window.location.href='saque.html?v=2900'">Saque</button>
 <button class="logout" onclick="logout()">Sair</button>
 </div>
 
@@ -175,7 +212,7 @@ font-size:16px;
 Carregando rifa...
 </div>
 
-<div class="card">
+<div class="card oculto" id="cardNotificacoes">
 <h3>Notificações</h3>
 <div id="listaNotificacoes">Carregando notificações...</div>
 <button class="btn-pequeno" onclick="marcarTodasLidas()">Marcar todas como lidas</button>
@@ -194,6 +231,8 @@ Carregando rifa...
 <script>
 let usuario = null
 let perfilAtual = null
+let notificacoesAbertas = false
+let quantidadeNaoLidas = 0
 
 async function verificarLogin(){
   const { data } = await sb.auth.getUser()
@@ -432,15 +471,21 @@ async function carregarNotificacoes(){
 
   if(error){
     div.innerHTML = `<div class="vazio">${error.message}</div>`
+    atualizarBadge(0)
     return
   }
 
   if(!data || data.length === 0){
     div.innerHTML = `<div class="vazio">Nenhuma notificação.</div>`
+    atualizarBadge(0)
     return
   }
 
+  let naoLidas = 0
+
   data.forEach(n => {
+    if(!n.lida) naoLidas++
+
     div.innerHTML += `
       <div class="notificacao ${n.lida ? "" : "nao-lida"}">
         <strong>${n.titulo || "Notificação"}</strong><br>
@@ -449,6 +494,31 @@ async function carregarNotificacoes(){
       </div>
     `
   })
+
+  atualizarBadge(naoLidas)
+}
+
+function atualizarBadge(total){
+  quantidadeNaoLidas = total
+  const badge = document.getElementById("notifBadge")
+
+  if(total > 0){
+    badge.innerText = total > 99 ? "99+" : total
+    badge.classList.remove("oculto")
+  }else{
+    badge.classList.add("oculto")
+  }
+}
+
+function toggleNotificacoes(){
+  notificacoesAbertas = !notificacoesAbertas
+  const card = document.getElementById("cardNotificacoes")
+
+  if(notificacoesAbertas){
+    card.classList.remove("oculto")
+  }else{
+    card.classList.add("oculto")
+  }
 }
 
 async function marcarTodasLidas(){
