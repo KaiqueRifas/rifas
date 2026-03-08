@@ -1,170 +1,243 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaique Rifas</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=700"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body{
-      font-family:Arial,sans-serif;
-      background:#f3f3f3;
-      margin:0;
-      padding:20px;
-    }
-    .container{
-      max-width:700px;
-      margin:0 auto;
-    }
-    .card{
-      background:#fff;
-      padding:20px;
-      border-radius:14px;
-      margin-bottom:20px;
-      box-shadow:0 2px 10px rgba(0,0,0,0.08);
-    }
-    h1,h2{margin-top:0}
-    p{
-      font-size:18px;
-      line-height:1.5;
-      margin:10px 0;
-      white-space:pre-line;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
-    .item{
-      padding:20px 12px;
-      border-radius:12px;
-      text-align:center;
-      font-weight:bold;
-      border:1px solid rgba(0,0,0,0.08);
-    }
-    .livre{ background:#bfe8bf; }
-    .reservado{ background:#f5dfa1; }
-    .pago{ background:#c7d8ff; }
-    .indisponivel{ background:#e5e5e5; }
-  </style>
+<title>Rifa</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+margin:0;
+padding:20px;
+}
+
+.container{
+max-width:700px;
+margin:auto;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-bottom:20px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.item{
+padding:20px;
+border-radius:10px;
+text-align:center;
+font-weight:bold;
+}
+
+.livre{
+background:#9be29b;
+}
+
+.reservado{
+background:#ffd27a;
+}
+
+.pago{
+background:#7fb3ff;
+}
+
+.indisponivel{
+background:#ddd;
+}
+
+.topo{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+}
+
+.logout{
+background:#c0392b;
+padding:8px 14px;
+border-radius:6px;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+</style>
+
 </head>
+
 <body>
 
 <div class="container">
 
-  <div class="card" id="card-rifa">
-    <h2>Rifa</h2>
-    <p>Carregando...</p>
-  </div>
+<div class="topo">
 
-  <div class="card">
-    <h2>Itens disponíveis</h2>
-    <div class="grid" id="grid-itens"></div>
-  </div>
+<h2>Rifa</h2>
+
+<button class="logout" onclick="logout()">
+Sair
+</button>
+
+</div>
+
+<div class="card" id="card-rifa">
+Carregando rifa...
+</div>
+
+<div class="card">
+
+<h3>Escolha seu bicho</h3>
+
+<div class="grid" id="grid-itens"></div>
+
+</div>
 
 </div>
 
 <script>
+
+async function verificarLogin(){
+
+const { data } = await sb.auth.getSession()
+
+if(!data.session){
+
+window.location.href = "login.html"
+
+}
+
+}
+
+async function logout(){
+
+await sb.auth.signOut()
+
+window.location.href = "login.html"
+
+}
+
 function formatarReal(v){
-  return Number(v || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+
+return Number(v || 0).toLocaleString("pt-BR",{
+minimumFractionDigits:2,
+maximumFractionDigits:2
+})
+
 }
 
 async function buscarCampanha(){
-  const { data, error } = await sb
-    .from("campaigns")
-    .select("*")
-    .order("id", { ascending: false })
-    .limit(1)
 
-  if (error || !data || data.length === 0){
-    return null
-  }
+const { data } = await sb
+.from("campaigns")
+.select("*")
+.order("id",{ascending:false})
+.limit(1)
 
-  return data[0]
+if(!data || data.length===0) return null
+
+return data[0]
+
 }
 
 async function carregarRifa(){
-  const campanha = await buscarCampanha()
-  const card = document.getElementById("card-rifa")
 
-  if (!campanha || !campanha.ativa){
-    card.innerHTML = `
-      <h1>Rifa</h1>
-      <p>Rifa desligada</p>
-    `
-    return null
-  }
+const campanha = await buscarCampanha()
 
-  card.innerHTML = `
-    <h1>${campanha.nome_rifa || "Rifa"}</h1>
-    <p>Rifa ligada</p>
-    <p>Valor: R$ ${formatarReal(campanha.valor)}</p>
-    <p>${campanha.premiacao ? "Premiações:\n" + campanha.premiacao : ""}</p>
-    <p>${campanha.chave_pix ? "Pix: " + campanha.chave_pix : ""}</p>
-  `
+const card = document.getElementById("card-rifa")
 
-  return campanha
+if(!campanha || !campanha.ativa){
+
+card.innerHTML = `
+<h2>Rifa</h2>
+<p>Rifa desligada</p>
+`
+
+return
+
+}
+
+card.innerHTML = `
+<h2>${campanha.nome_rifa}</h2>
+<p>Valor: R$ ${formatarReal(campanha.valor)}</p>
+<p>${campanha.premiacao}</p>
+`
+
 }
 
 async function carregarItens(){
-  const campanha = await buscarCampanha()
 
-  const { data, error } = await sb
-    .from("items")
-    .select("*")
-    .order("id", { ascending: true })
+const campanha = await buscarCampanha()
 
-  const grid = document.getElementById("grid-itens")
-  grid.innerHTML = ""
+const { data } = await sb
+.from("items")
+.select("*")
+.order("id",{ascending:true})
 
-  if (error || !data || data.length === 0){
-    grid.innerHTML = "<p>Nenhum item encontrado.</p>"
-    return
-  }
+const grid = document.getElementById("grid-itens")
 
-  data.forEach(item => {
-    let classe = "livre"
-    let statusTexto = "Livre"
-    let valorTexto = campanha && campanha.ativa ? campanha.valor : 0
+grid.innerHTML = ""
 
-    if (!campanha || !campanha.ativa){
-      classe = "indisponivel"
-      statusTexto = "Indisponível"
-      valorTexto = 0
-    } else if (item.pago || item.status === "pago" || item.confirmado === true){
-      classe = "pago"
-      statusTexto = "Pago"
-    } else if (item.status === "reservado"){
-      classe = "reservado"
-      statusTexto = "Reservado"
-    }
+data.forEach(item=>{
 
-    grid.innerHTML += `
-      <div class="item ${classe}">
-        <div style="font-size:20px;margin-bottom:10px;">${item.nome}</div>
-        <div style="font-size:18px;margin-bottom:8px;">${statusTexto}</div>
-        <div style="font-size:18px;">R$ ${formatarReal(valorTexto)}</div>
-      </div>
-    `
-  })
+let classe="livre"
+let status="Livre"
+
+if(!campanha || !campanha.ativa){
+
+classe="indisponivel"
+status="Indisponível"
+
+}else if(item.status==="reservado"){
+
+classe="reservado"
+status="Reservado"
+
+}else if(item.status==="pago"){
+
+classe="pago"
+status="Pago"
+
+}
+
+grid.innerHTML += `
+<div class="item ${classe}">
+${item.nome}<br>
+${status}<br>
+R$ ${formatarReal(campanha ? campanha.valor : 0)}
+</div>
+`
+
+})
+
 }
 
 async function iniciar(){
-  await carregarRifa()
-  await carregarItens()
+
+await verificarLogin()
+
+await carregarRifa()
+
+await carregarItens()
+
 }
 
 iniciar()
-setInterval(iniciar, 2500)
+
 </script>
 
 </body>
