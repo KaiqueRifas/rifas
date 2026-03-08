@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel ADM</title>
 
-  <link rel="stylesheet" href="style.css?v=80">
+  <link rel="stylesheet" href="style.css?v=90">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=80"></script>
+  <script src="config.js?v=90"></script>
 </head>
 <body>
 
@@ -19,13 +19,16 @@
 
 <section class="card">
   <h2>Controle da Rifa</h2>
-  <button onclick="ligar()">Ligar rifa</button>
   <button onclick="desligar()">Desligar rifa</button>
   <p id="statusCampanha"></p>
 </section>
 
 <section class="card">
   <h2>Editar rifa</h2>
+
+  <input type="text" id="nomeRifa" placeholder="Nome da rifa" style="width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:15px;">
+
+  <br><br>
 
   <input type="number" id="valorRifa" placeholder="Valor da rifa" step="0.01" style="width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:15px;">
 
@@ -35,7 +38,7 @@
 
   <br><br>
 
-  <input type="text" id="pixRifa" placeholder="Chave PIX" style="width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:15px;">
+  <input type="text" id="pixRifa" placeholder="Pix" style="width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:15px;">
 
   <br><br>
 
@@ -80,59 +83,38 @@ async function carregarCampanha() {
   }
 
   campanhaId = data.id
+  document.getElementById("nomeRifa").value = data.nome_rifa || ""
   document.getElementById("valorRifa").value = data.valor || ""
   document.getElementById("premiacaoRifa").value = data.premiacao || ""
   document.getElementById("pixRifa").value = data.chave_pix || ""
   document.getElementById("statusCampanha").innerText = data.ativa ? "Rifa ligada" : "Rifa desligada"
 }
 
-async function ligar() {
-  if (!campanhaId) await carregarCampanha()
-
-  const { error } = await sb
-    .from("campaigns")
-    .update({ ativa: true })
-    .eq("id", campanhaId)
-
-  if (error) {
-    document.getElementById("msg").innerText = error.message
-    return
-  }
-
-  document.getElementById("statusCampanha").innerText = "Rifa ligada"
-  document.getElementById("msg").innerText = "Rifa ligada"
-}
-
-async function desligar() {
-  if (!campanhaId) await carregarCampanha()
-
-  const { error } = await sb
-    .from("campaigns")
-    .update({ ativa: false })
-    .eq("id", campanhaId)
-
-  if (error) {
-    document.getElementById("msg").innerText = error.message
-    return
-  }
-
-  document.getElementById("statusCampanha").innerText = "Rifa desligada"
-  document.getElementById("msg").innerText = "Rifa desligada"
+async function atualizarValorDosItens(valor) {
+  await sb
+    .from("items")
+    .update({ valor: valor })
+    .not("id", "is", null)
 }
 
 async function salvarRifa() {
   if (!campanhaId) await carregarCampanha()
 
+  const nomeRifa = document.getElementById("nomeRifa").value.trim()
   const valor = document.getElementById("valorRifa").value.trim()
   const premiacao = document.getElementById("premiacaoRifa").value.trim()
   const chavePix = document.getElementById("pixRifa").value.trim()
 
+  const valorNumero = valor ? Number(valor) : 0
+
   const { error } = await sb
     .from("campaigns")
     .update({
-      valor: valor ? Number(valor) : 0,
+      nome_rifa: nomeRifa,
+      valor: valorNumero,
       premiacao: premiacao,
-      chave_pix: chavePix
+      chave_pix: chavePix,
+      ativa: true
     })
     .eq("id", campanhaId)
 
@@ -141,7 +123,59 @@ async function salvarRifa() {
     return
   }
 
-  document.getElementById("msg").innerText = "Rifa atualizada"
+  await atualizarValorDosItens(valorNumero)
+
+  document.getElementById("statusCampanha").innerText = "Rifa ligada"
+  document.getElementById("msg").innerText = "Rifa salva e ligada"
+  await carregar()
+}
+
+async function desligar() {
+  if (!campanhaId) await carregarCampanha()
+
+  const { errorCampanha } = await sb
+    .from("campaigns")
+    .update({
+      ativa: false,
+      nome_rifa: "",
+      valor: 0,
+      premiacao: "",
+      chave_pix: ""
+    })
+    .eq("id", campanhaId)
+
+  if (errorCampanha) {
+    document.getElementById("msg").innerText = errorCampanha.message
+    return
+  }
+
+  const { errorItems } = await sb
+    .from("items")
+    .update({
+      status: "livre",
+      usuario_id: null,
+      reservado_em: null,
+      reservado_ate: null,
+      pago: false,
+      reservado_email: null,
+      reservado_telefone: null,
+      valor: 0
+    })
+    .not("id", "is", null)
+
+  if (errorItems) {
+    document.getElementById("msg").innerText = errorItems.message
+    return
+  }
+
+  document.getElementById("nomeRifa").value = ""
+  document.getElementById("valorRifa").value = ""
+  document.getElementById("premiacaoRifa").value = ""
+  document.getElementById("pixRifa").value = ""
+
+  document.getElementById("statusCampanha").innerText = "Rifa desligada"
+  document.getElementById("msg").innerText = "Rifa desligada e zerada"
+  await carregar()
 }
 
 async function resetar() {
