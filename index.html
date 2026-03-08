@@ -9,7 +9,7 @@
   <title>Kaique Rifas</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=200"></script>
+  <script src="config.js?v=201"></script>
 
   <style>
     body{font-family:Arial,sans-serif;background:#f3f3f3;margin:0;padding:20px}
@@ -29,6 +29,13 @@
 </div>
 
 <script>
+function formatarReal(v){
+  return Number(v || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
 async function carregar() {
   const { data, error } = await sb
     .from("campaigns")
@@ -57,7 +64,7 @@ async function carregar() {
 
   document.getElementById("titulo").innerText = data.nome_rifa || "Rifa"
   document.getElementById("status").innerText = "Rifa ligada"
-  document.getElementById("valor").innerText = "Valor: R$ " + Number(data.valor || 0)
+  document.getElementById("valor").innerText = "Valor: R$ " + formatarReal(data.valor)
   document.getElementById("premio").innerText = data.premiacao ? "Premiações: " + data.premiacao : ""
   document.getElementById("pix").innerText = data.chave_pix ? "Pix: " + data.chave_pix : ""
 }
