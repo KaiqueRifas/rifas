@@ -8,10 +8,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kaique Rifas</title>
 
-  <link rel="stylesheet" href="style.css?v=80">
+  <link rel="stylesheet" href="style.css?v=81">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=80"></script>
+  <script src="config.js?v=81"></script>
+
+  <style>
+    .toast-msg{
+      position:fixed;
+      left:50%;
+      bottom:20px;
+      transform:translateX(-50%);
+      background:#0d2d5f;
+      color:#fff;
+      padding:12px 16px;
+      border-radius:12px;
+      font-size:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.2);
+      z-index:9999;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease, transform .2s ease;
+      max-width:90%;
+      text-align:center;
+    }
+
+    .toast-msg.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+  </style>
 </head>
 <body>
 
@@ -42,15 +68,29 @@
   <button onclick="copiarPix()">Copiar chave PIX</button>
 </section>
 
+<div id="toastMsg" class="toast-msg"></div>
+
 <script>
 const grid = document.getElementById("gridBichos")
 const pixBox = document.getElementById("pixBox")
+const toastMsg = document.getElementById("toastMsg")
 
 let chavePix = ""
 let userId = ""
 let userEmail = ""
 let userTelefone = ""
 let rifaAtiva = false
+let toastTimer = null
+
+function mostrarToast(texto){
+  toastMsg.innerText = texto
+  toastMsg.classList.add("show")
+
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastMsg.classList.remove("show")
+  }, 2200)
+}
 
 async function carregarUsuario(){
   const { data } = await sb.auth.getUser()
@@ -171,7 +211,11 @@ async function carregarItens(){
       div.onclick = () => reservar(item.id)
     } else {
       div.style.cursor = "default"
-      div.onclick = null
+      div.onclick = () => {
+        if (!rifaAtiva){
+          mostrarToast("Rifa desligada")
+        }
+      }
     }
 
     grid.appendChild(div)
@@ -184,16 +228,17 @@ async function reservar(id){
   await carregarCampanha()
 
   if (!rifaAtiva){
-    alert("A rifa está desligada")
+    await carregarItens()
+    mostrarToast("Rifa desligada")
     return
   }
 
-  alert("Reserva liberada só quando a rifa estiver ligada")
+  mostrarToast("Reserva liberada só quando a rifa estiver ligada")
 }
 
 function copiarPix(){
   navigator.clipboard.writeText(chavePix)
-  alert("Chave PIX copiada")
+  mostrarToast("Chave PIX copiada")
 }
 
 async function logout(){
