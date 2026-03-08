@@ -9,7 +9,7 @@
   <title>Admin Rifa</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=2200"></script>
+  <script src="config.js?v=2300"></script>
 
   <style>
     body{
@@ -173,12 +173,12 @@
   </div>
 
   <div class="card">
-    <h2>Depósitos solicitados</h2>
+    <h2>Depósitos pendentes</h2>
     <div id="listaDepositos"></div>
   </div>
 
   <div class="card">
-    <h2>Saques solicitados</h2>
+    <h2>Saques pendentes</h2>
     <div id="listaSaques"></div>
   </div>
 
@@ -458,6 +458,7 @@ async function carregarDepositos(){
   const { data, error } = await sb
     .from("depositos")
     .select("*")
+    .eq("status", "pendente")
     .order("id", { ascending: false })
 
   const lista = document.getElementById("listaDepositos")
@@ -469,7 +470,7 @@ async function carregarDepositos(){
   }
 
   if(!data || data.length === 0){
-    lista.innerHTML = `<div class="vazio">Nenhum depósito encontrado.</div>`
+    lista.innerHTML = `<div class="vazio">Nenhum depósito pendente.</div>`
     return
   }
 
@@ -482,7 +483,7 @@ async function carregarDepositos(){
         <div class="linha">Comprovante: ${dep.comprovante || "-"}</div>
         <div class="linha">Status: ${dep.status || "-"}</div>
         <div class="linha">Data: ${formatarData(dep.created_at)}</div>
-        ${dep.status !== "pago" ? `<button class="btn-verde" onclick="aprovarDeposito(${dep.id}, '${dep.email}', ${Number(dep.valor || 0)})">Aprovar depósito</button>` : ""}
+        <button class="btn-verde" onclick="aprovarDeposito(${dep.id}, '${dep.email}', ${Number(dep.valor || 0)})">Aprovar depósito</button>
       </div>
     `
   })
@@ -534,6 +535,7 @@ async function carregarSaques(){
   const { data, error } = await sb
     .from("saques")
     .select("*")
+    .eq("status", "pendente")
     .order("id", { ascending: false })
 
   const lista = document.getElementById("listaSaques")
@@ -545,7 +547,7 @@ async function carregarSaques(){
   }
 
   if(!data || data.length === 0){
-    lista.innerHTML = `<div class="vazio">Nenhum saque encontrado.</div>`
+    lista.innerHTML = `<div class="vazio">Nenhum saque pendente.</div>`
     return
   }
 
@@ -558,7 +560,7 @@ async function carregarSaques(){
         <div class="linha">Pix: ${saque.pix || "-"}</div>
         <div class="linha">Status: ${saque.status || "-"}</div>
         <div class="linha">Data: ${formatarData(saque.created_at)}</div>
-        ${saque.status !== "pago" ? `<button class="btn-verde" onclick="marcarSaquePago(${saque.id})">Marcar como pago</button>` : ""}
+        <button class="btn-verde" onclick="marcarSaquePago(${saque.id})">Marcar como pago</button>
       </div>
     `
   })
